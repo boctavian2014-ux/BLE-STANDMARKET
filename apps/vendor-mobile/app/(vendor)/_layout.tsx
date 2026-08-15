@@ -13,6 +13,7 @@ export default function VendorTabsLayout() {
       }}
     >
       <Tabs.Screen name="offers" options={{ title: "Oferte" }} />
+      <Tabs.Screen name="scan" options={{ title: "Validare" }} />
       <Tabs.Screen name="stand" options={{ title: "Stand" }} />
       <Tabs.Screen name="profile" options={{ title: "Profil" }} />
     </Tabs>

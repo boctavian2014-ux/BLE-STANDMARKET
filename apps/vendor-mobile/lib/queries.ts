@@ -203,3 +203,37 @@ export async function recordStandView(
     throw error;
   }
 }
+
+export type RedemptionValidation = {
+  status: "valid" | "invalid";
+  product_name?: string;
+  redemption_code?: string;
+  redeemed_at?: string | null;
+};
+
+export async function validateRedemptionCode(
+  code: string,
+): Promise<RedemptionValidation> {
+  const { data, error } = await getSupabaseClient()
+    .from("offer_redemptions")
+    .select("redemption_code, redeemed_at, offers(product_name)")
+    .eq("redemption_code", code)
+    .maybeSingle();
+  if (error) {
+    throw error;
+  }
+  if (!data) {
+    return { status: "invalid" };
+  }
+  const offer = data.offers as
+    | { product_name: string }
+    | { product_name: string }[]
+    | null;
+  const offerRow = Array.isArray(offer) ? offer[0] : offer;
+  return {
+    status: "valid",
+    product_name: offerRow?.product_name,
+    redemption_code: data.redemption_code as string,
+    redeemed_at: (data.redeemed_at as string | null) ?? null,
+  };
+}

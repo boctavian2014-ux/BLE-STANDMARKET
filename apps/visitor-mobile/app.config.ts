@@ -32,7 +32,24 @@ export default {
         foregroundImage: "./assets/icon.png",
         backgroundColor: "#0B0F14",
       },
+      permissions: [
+        "android.permission.CAMERA",
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.NFC",
+      ],
     },
-    plugins: ["expo-router"],
+    plugins: [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          cameraPermission: "Allow StandMarket to scan offer QR codes.",
+        },
+      ],
+    ],
   },
 };
