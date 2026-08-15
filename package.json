@@ -1,0 +1,19 @@
+{
+  "name": "ble-standmarket",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "db:start": "bunx supabase start",
+    "db:stop": "bunx supabase stop",
+    "db:reset": "bunx supabase db reset",
+    "db:test": "bunx supabase test db",
+    "db:lint": "bunx supabase db lint --local --schema public --level warning --fail-on warning"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "supabase": "^2.114.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
