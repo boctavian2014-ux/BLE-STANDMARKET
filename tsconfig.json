@@ -18,6 +18,6 @@
     "noUnusedParameters": false,
     "types": ["bun"]
   },
-  "include": ["apps/**/*.ts", "apps/**/*.tsx", "packages/**/*.ts"],
+  "include": ["apps/**/*.ts", "apps/**/*.tsx", "packages/**/*.ts", "packages/**/*.tsx"],
   "exclude": ["node_modules", "supabase", "**/.expo", "**/dist"]
 }

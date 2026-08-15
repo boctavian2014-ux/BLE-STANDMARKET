@@ -1,9 +1,15 @@
-import { SessionProvider, useSession } from "@standmarket/supabase-client";
-import { colors } from "@standmarket/ui";
+import {
+  ErrorBoundary,
+  HardeningProvider,
+  QuerySkeleton,
+  SessionProvider,
+  useSession,
+} from "@standmarket/supabase-client";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect, type ReactNode } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { pingSupabase, offlineStore } from "../lib/hardening-setup";
+import { visitorOfflineHandlers } from "../lib/offline-handlers";
 import { queryClient } from "../lib/query-client";
 
 function AuthGate({ children }: { children: ReactNode }) {
@@ -24,18 +30,7 @@ function AuthGate({ children }: { children: ReactNode }) {
   }, [isLoading, router, segments, session]);
 
   if (isLoading) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: colors.background,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <ActivityIndicator color={colors.accent} />
-      </View>
-    );
+    return <QuerySkeleton label="Se încarcă sesiunea" />;
   }
 
   return children;
@@ -43,12 +38,20 @@ function AuthGate({ children }: { children: ReactNode }) {
 
 export default function RootLayout() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <SessionProvider>
-        <AuthGate>
-          <Stack screenOptions={{ headerShown: false }} />
-        </AuthGate>
-      </SessionProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <SessionProvider>
+          <HardeningProvider
+            ping={pingSupabase}
+            store={offlineStore}
+            handlers={visitorOfflineHandlers}
+          >
+            <AuthGate>
+              <Stack screenOptions={{ headerShown: false }} />
+            </AuthGate>
+          </HardeningProvider>
+        </SessionProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

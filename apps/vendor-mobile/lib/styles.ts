@@ -18,7 +18,7 @@ export const screenStyles = StyleSheet.create({
     fontSize: typography.body,
   },
   muted: {
-    color: colors.muted,
+    color: "#C5CDD6",
     fontSize: typography.subtitle,
   },
   error: {
@@ -48,6 +48,11 @@ export const screenStyles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   buttonLabel: {
+    color: "#0B0F14",
+    fontSize: typography.subtitle,
+    fontWeight: "600",
+  },
+  buttonLabelOnSurface: {
     color: colors.text,
     fontSize: typography.subtitle,
     fontWeight: "600",
