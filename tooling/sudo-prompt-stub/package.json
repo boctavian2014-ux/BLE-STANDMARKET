@@ -1,0 +1,6 @@
+{
+  "name": "@expo/sudo-prompt",
+  "version": "9.3.2",
+  "private": true,
+  "main": "./index.js"
+}
