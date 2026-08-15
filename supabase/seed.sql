@@ -112,4 +112,46 @@ insert into public.notification_events (id, user_id, expo_id, stand_id, offer_id
   ('60000000-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-0000000000aa', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'offer_shown'),
   ('60000000-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-0000000000bb', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '10000000-0000-0000-0000-000000000007', '30000000-0000-0000-0000-000000000005', '20000000-0000-0000-0000-000000000003', 'zone_detected');
 
+-- Memberships derived from legacy stands.vendor_id so existing offer RLS tests stay green.
+-- Authorization source of truth is this table, not vendor_id.
+insert into public.vendor_stand_memberships (expo_id, stand_id, user_id, status)
+select s.expo_id, s.id, s.vendor_id, 'active'
+from public.stands as s
+where s.vendor_id is not null;
+
+-- DEVELOPMENT ONLY activation codes. Plaintext literals below are never stored.
+-- Persisted column is sha256(normalize(plaintext)). Never use these values in production.
+-- active:    DEV0-ACTV-CODE-0001
+-- expired:   DEV0-EXPR-CODE-0002
+-- consumed:  DEV0-USED-CODE-0003
+insert into public.vendor_activation_codes (
+  id, expo_id, stand_id, code_hash, status, max_uses, used_count, expires_at, created_by, consumed_by, consumed_at
+) values
+  (
+    '70000000-0000-0000-0000-000000000001',
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    '10000000-0000-0000-0000-000000000020',
+    extensions.digest(private.normalize_activation_code('DEV0-ACTV-CODE-0001'), 'sha256'),
+    'active', 1, 0, now() + interval '7 days',
+    'aaaaaaaa-0000-0000-0000-000000000001', null, null
+  ),
+  (
+    '70000000-0000-0000-0000-000000000002',
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    '10000000-0000-0000-0000-000000000030',
+    extensions.digest(private.normalize_activation_code('DEV0-EXPR-CODE-0002'), 'sha256'),
+    'expired', 1, 0, now() - interval '1 day',
+    'aaaaaaaa-0000-0000-0000-000000000001', null, null
+  ),
+  (
+    '70000000-0000-0000-0000-000000000003',
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    '10000000-0000-0000-0000-000000000020',
+    extensions.digest(private.normalize_activation_code('DEV0-USED-CODE-0003'), 'sha256'),
+    'consumed', 1, 1, now() + interval '7 days',
+    'aaaaaaaa-0000-0000-0000-000000000001',
+    'aaaaaaaa-0000-0000-0000-00000000000a',
+    now() - interval '1 hour'
+  );
+
 set session_replication_role = origin;
