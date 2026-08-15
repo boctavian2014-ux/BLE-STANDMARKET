@@ -2,21 +2,32 @@
   "name": "vendor-mobile",
   "version": "0.0.0",
   "private": true,
-  "main": "expo/AppEntry.js",
+  "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.2.0",
     "@standmarket/expo-config": "workspace:*",
     "@standmarket/shared": "workspace:*",
+    "@standmarket/supabase-client": "workspace:*",
     "@standmarket/ui": "workspace:*",
+    "@tanstack/react-query": "^5.85.0",
     "expo": "~57.0.9",
+    "expo-constants": "~57.0.11",
+    "expo-linking": "~57.0.6",
+    "expo-router": "~57.0.13",
+    "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
-    "react-native": "0.86.2"
+    "react-native": "0.86.2",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0",
+    "react-native-url-polyfill": "^2.0.0"
   },
   "devDependencies": {
     "@types/react": "~19.2.0",
-    "typescript": "^5.8.0"
+    "babel-preset-expo": "~57.0.7",
+    "typescript": "~6.0.3"
   }
 }
