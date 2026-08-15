@@ -4,6 +4,8 @@ export type OfferListItem = {
   id: string;
   product_name: string;
   discount_percent: number | null;
+  stand_id: string;
+  expo_id: string | null;
   stand_name: string | null;
 };
 
@@ -32,21 +34,47 @@ export async function fetchCurrentExpoId(): Promise<string> {
 export async function fetchActiveOffers(): Promise<OfferListItem[]> {
   const { data, error } = await getSupabaseClient()
     .from("offers")
-    .select("id, product_name, discount_percent, stands(name)")
+    .select("id, product_name, discount_percent, stand_id, stands(name, expo_id)")
     .eq("status", "active");
   if (error) {
     throw error;
   }
   return (data ?? []).map((row) => {
-    const stand = row.stands as { name: string } | { name: string }[] | null;
-    const standName = Array.isArray(stand) ? stand[0]?.name : stand?.name;
+    const stand = row.stands as
+      | { name: string; expo_id: string }
+      | { name: string; expo_id: string }[]
+      | null;
+    const standRow = Array.isArray(stand) ? stand[0] : stand;
     return {
       id: row.id as string,
       product_name: row.product_name as string,
       discount_percent: (row.discount_percent as number | null) ?? null,
-      stand_name: standName ?? null,
+      stand_id: row.stand_id as string,
+      expo_id: standRow?.expo_id ?? null,
+      stand_name: standRow?.name ?? null,
     };
   });
+}
+
+export async function recordOfferViews(
+  userId: string,
+  offers: OfferListItem[],
+): Promise<void> {
+  if (!offers.length) {
+    return;
+  }
+  const { error } = await getSupabaseClient().from("analytics_events").insert(
+    offers.map((offer) => ({
+      event_type: "offer_view",
+      user_id: userId,
+      offer_id: offer.id,
+      stand_id: offer.stand_id,
+      expo_id: offer.expo_id,
+    })),
+  );
+  if (error) {
+    throw error;
+  }
 }
 
 export async function fetchStands(): Promise<StandListItem[]> {
