@@ -16,7 +16,7 @@ apps/
   vendor-mobile/      # StandMarket Vendor
 packages/
   shared/             # identitate produs
-  supabase-client/    # placeholder, fără client
+  supabase-client/    # client Auth + hooks (URL/key din EXPO_PUBLIC_*)
   ui/                 # design tokens
   expo-config/        # slug / scheme / bundle IDs
 supabase/             # schema, RLS, seed, pgTAP
@@ -25,8 +25,11 @@ docs/
 
 ## Aplicații mobile (local)
 
+Visitor MVP: copiază `apps/visitor-mobile/.env.example` → `.env` și completează URL + anon key din `supabase status`. Nu folosi `service_role`.
+
 ```bash
 bun install
+bun run db:start
 bun run dev:visitor
 bun run dev:vendor
 ```

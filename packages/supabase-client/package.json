@@ -7,5 +7,17 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.0",
+    "react-native-url-polyfill": "^2.0.0"
+  },
+  "peerDependencies": {
+    "@react-native-async-storage/async-storage": "*",
+    "react": "*",
+    "react-native": "*"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.0"
   }
 }
