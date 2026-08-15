@@ -32,7 +32,19 @@ export default {
         foregroundImage: "./assets/icon.png",
         backgroundColor: "#0B0F14",
       },
+      permissions: [
+        "android.permission.CAMERA",
+        "android.permission.NFC",
+      ],
     },
-    plugins: ["expo-router"],
+    plugins: [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          cameraPermission: "Allow StandMarket Vendor to scan redemption QR codes.",
+        },
+      ],
+    ],
   },
 };

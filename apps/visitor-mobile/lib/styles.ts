@@ -38,6 +38,14 @@ export const screenStyles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
   },
+  buttonSecondary: {
+    backgroundColor: colors.surface,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: spacing.sm,
+  },
   buttonLabel: {
     color: colors.text,
     fontSize: typography.subtitle,
@@ -48,6 +56,11 @@ export const screenStyles = StyleSheet.create({
     color: colors.text,
     borderRadius: 10,
     padding: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  row: {
+    flexDirection: "row",
+    gap: spacing.sm,
     marginBottom: spacing.sm,
   },
 });
