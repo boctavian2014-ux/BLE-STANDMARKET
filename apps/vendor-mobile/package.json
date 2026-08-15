@@ -1,0 +1,22 @@
+{
+  "name": "vendor-mobile",
+  "version": "0.0.0",
+  "private": true,
+  "main": "expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@standmarket/expo-config": "workspace:*",
+    "@standmarket/shared": "workspace:*",
+    "@standmarket/ui": "workspace:*",
+    "expo": "~57.0.9",
+    "react": "19.2.3",
+    "react-native": "0.86.2"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.0",
+    "typescript": "^5.8.0"
+  }
+}

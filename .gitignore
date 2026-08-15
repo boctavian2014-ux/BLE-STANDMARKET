@@ -6,6 +6,12 @@ node_modules/
 .env.*
 !.env.example
 
+# Expo / native (generated locally; not committed)
+.expo/
+dist/
+ios/
+android/
+
 # Supabase
 supabase/.branches
 supabase/.temp
@@ -20,7 +26,6 @@ Thumbs.db
 
 # Logs / build
 *.log
-dist/
 build/
 .turbo/
 coverage/

@@ -1,47 +1,57 @@
 # BLE STANDMARKET
 
-Expoziție BLE / NFC / QR — fundație de date (Supabase local-first).
+Expoziție BLE / NFC / QR — monorepo local-first (Bun + Expo + Supabase).
 
 ## Cerințe
 
+- [Bun](https://bun.sh)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- [Supabase CLI](https://supabase.com/docs/guides/cli) (`supabase --version`)
-- Node.js ≥ 22.13 (pentru fazele ulterioare ale monorepo-ului)
-
-## Setup local (schema + seed)
-
-```bash
-# Pornește stack-ul local (Postgres, Auth, Studio, etc.)
-supabase start
-
-# Aplică migrările și rulează seed.sql
-supabase db reset
-
-# Teste pgTAP (schema, RLS, seed)
-supabase test db
-
-# Lint SQL / plpgsql
-supabase db lint
-```
-
-După `supabase start`, Studio e de obicei la [http://127.0.0.1:54323](http://127.0.0.1:54323). Cheile locale apar în output-ul comenzii `supabase status`.
+- Node.js ≥ 22.13 (cerut de Expo SDK)
 
 ## Structură
 
 ```
-supabase/
-  config.toml
-  migrations/     # schema + RLS
-  seed.sql        # 1 expo, 30 standuri, 5 oferte active
-  tests/database/ # pgTAP
+apps/
+  visitor-mobile/     # StandMarket (Visitor)
+  vendor-mobile/      # StandMarket Vendor
+packages/
+  shared/             # identitate produs
+  supabase-client/    # placeholder, fără client
+  ui/                 # design tokens
+  expo-config/        # slug / scheme / bundle IDs
+supabase/             # schema, RLS, seed, pgTAP
+docs/
 ```
 
-## Variabile de mediu (ulterior, apps)
+## Aplicații mobile (local)
 
-| Variabilă | Descriere |
-|---|---|
-| `EXPO_PUBLIC_API_URL` | URL API NestJS |
-| `EXPO_PUBLIC_SUPABASE_URL` | URL proiect Supabase |
-| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Cheie anon / publishable |
+```bash
+bun install
+bun run dev:visitor
+bun run dev:vendor
+```
 
-Nu aplicați migrările pe un proiect remote până nu e confirmat explicit.
+Quality:
+
+```bash
+bun run typecheck
+bun run lint
+bun run test
+```
+
+## Setup local (schema + seed)
+
+```bash
+bun run db:start
+bun run db:reset
+bun run db:test
+bun run db:lint
+```
+
+După `db:start`, Studio e de obicei la [http://127.0.0.1:54323](http://127.0.0.1:54323). Cheile locale apar în `supabase status`. Nu le commitați.
+
+## Exclus din acest scaffold (PR 3)
+
+Auth UI, BLE, NFC, QR, hărți, notificări, RevenueCat, IAP, billing, Railway, NestJS, EAS build/submit, Supabase remote, ecrane de produs și mock data de business.
+
+Identitatea nativă și modelul Daily Pass sunt în `docs/architecture/MOBILE_APP_IDENTITY.md`.
