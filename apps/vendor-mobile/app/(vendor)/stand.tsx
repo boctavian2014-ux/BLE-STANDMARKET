@@ -5,13 +5,19 @@ import {
 } from "@standmarket/supabase-client";
 import { colors } from "@standmarket/ui";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
-import { fetchVendorStand } from "../../lib/queries";
+import {
+  fetchVendorStand,
+  fetchVendorStandStats,
+  recordStandView,
+} from "../../lib/queries";
 import { screenStyles } from "../../lib/styles";
 
 export default function StandScreen() {
   const { session } = useSession();
   const userId = session?.user.id ?? "";
+  const recordedStand = useRef<string | null>(null);
   const membership = useQuery({
     queryKey: ["membership", userId],
     queryFn: () => fetchActiveMembership(getSupabaseClient(), userId),
@@ -23,6 +29,24 @@ export default function StandScreen() {
     queryFn: () => fetchVendorStand(standId ?? ""),
     enabled: Boolean(standId),
   });
+  const stats = useQuery({
+    queryKey: ["vendor-stand-stats", standId],
+    queryFn: () => fetchVendorStandStats(standId ?? ""),
+    enabled: Boolean(standId),
+  });
+
+  useEffect(() => {
+    if (!userId || !stand.data) {
+      return;
+    }
+    if (recordedStand.current === stand.data.id) {
+      return;
+    }
+    recordedStand.current = stand.data.id;
+    void recordStandView(userId, stand.data.id, membership.data?.expo_id ?? null).catch(
+      () => undefined,
+    );
+  }, [membership.data?.expo_id, stand.data, userId]);
 
   if (membership.isLoading || stand.isLoading) {
     return (
@@ -61,6 +85,20 @@ export default function StandScreen() {
       <View style={screenStyles.card}>
         <Text style={screenStyles.muted}>Expo</Text>
         <Text style={screenStyles.body}>{stand.data.expo_name ?? "—"}</Text>
+      </View>
+      <View style={screenStyles.card}>
+        <Text style={screenStyles.muted}>Oferte active</Text>
+        <Text style={screenStyles.body}>
+          {stats.data?.activeOffers ?? "—"}
+        </Text>
+      </View>
+      <View style={screenStyles.card}>
+        <Text style={screenStyles.muted}>Views</Text>
+        <Text style={screenStyles.body}>{stats.data?.views ?? "—"}</Text>
+      </View>
+      <View style={screenStyles.card}>
+        <Text style={screenStyles.muted}>Redemptions</Text>
+        <Text style={screenStyles.body}>{stats.data?.redemptions ?? "—"}</Text>
       </View>
     </View>
   );

@@ -1,6 +1,7 @@
 import {
   fetchActiveMembership,
   getSupabaseClient,
+  usePostgresChanges,
   useSession,
 } from "@standmarket/supabase-client";
 import { colors } from "@standmarket/ui";
@@ -71,6 +72,22 @@ export default function OffersScreen() {
     queryFn: () => fetchVendorOffers(standId ?? ""),
     enabled: Boolean(standId),
   });
+
+  usePostgresChanges(
+    Boolean(standId),
+    `vendor-offers-${standId ?? "none"}`,
+    {
+      table: "offers",
+      event: "*",
+      filter: standId ? `stand_id=eq.${standId}` : undefined,
+    },
+    () => {
+      void queryClient.invalidateQueries({ queryKey: ["vendor-offers", standId] });
+      void queryClient.invalidateQueries({
+        queryKey: ["vendor-stand-stats", standId],
+      });
+    },
+  );
 
   const save = useMutation({
     mutationFn: async () => {

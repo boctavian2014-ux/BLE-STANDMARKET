@@ -136,3 +136,70 @@ export async function toggleVendorOfferStatus(
     throw new Error("Could not update offer");
   }
 }
+
+export type VendorStandStats = {
+  activeOffers: number;
+  views: number;
+  redemptions: number;
+};
+
+export async function fetchVendorStandStats(
+  standId: string,
+): Promise<VendorStandStats> {
+  const client = getSupabaseClient();
+  const [active, views, offerIds] = await Promise.all([
+    client
+      .from("offers")
+      .select("id", { count: "exact", head: true })
+      .eq("stand_id", standId)
+      .eq("status", "active"),
+    client
+      .from("analytics_events")
+      .select("id", { count: "exact", head: true })
+      .eq("stand_id", standId)
+      .eq("event_type", "offer_view"),
+    client.from("offers").select("id").eq("stand_id", standId),
+  ]);
+  if (active.error) {
+    throw active.error;
+  }
+  if (views.error) {
+    throw views.error;
+  }
+  if (offerIds.error) {
+    throw offerIds.error;
+  }
+  const ids = (offerIds.data ?? []).map((row) => row.id as string);
+  let redemptions = 0;
+  if (ids.length) {
+    const counted = await client
+      .from("offer_redemptions")
+      .select("id", { count: "exact", head: true })
+      .in("offer_id", ids);
+    if (counted.error) {
+      throw counted.error;
+    }
+    redemptions = counted.count ?? 0;
+  }
+  return {
+    activeOffers: active.count ?? 0,
+    views: views.count ?? 0,
+    redemptions,
+  };
+}
+
+export async function recordStandView(
+  userId: string,
+  standId: string,
+  expoId: string | null,
+): Promise<void> {
+  const { error } = await getSupabaseClient().from("analytics_events").insert({
+    event_type: "stand_view",
+    user_id: userId,
+    stand_id: standId,
+    expo_id: expoId,
+  });
+  if (error) {
+    throw error;
+  }
+}
