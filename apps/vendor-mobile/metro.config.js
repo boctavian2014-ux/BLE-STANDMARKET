@@ -4,6 +4,10 @@ const path = require("node:path");
 const projectRoot = __dirname;
 const workspaceRoot = path.resolve(projectRoot, "../..");
 
+process.env.EXPO_PROJECT_ROOT = projectRoot;
+process.env.EXPO_ROUTER_APP_ROOT = path.join(projectRoot, "app");
+process.env.EXPO_ROUTER_ABS_APP_ROOT = path.join(projectRoot, "app");
+
 const config = getDefaultConfig(projectRoot);
 config.watchFolders = [workspaceRoot];
 config.resolver.nodeModulesPaths = [

@@ -10,7 +10,7 @@ export function readSupabasePublicEnv(
   const anonKey = env.EXPO_PUBLIC_SUPABASE_ANON_KEY?.trim();
   if (!url || !anonKey) {
     throw new Error(
-      "Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_ANON_KEY. Copy apps/visitor-mobile/.env.example to .env and fill values from `supabase status`.",
+      "Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_ANON_KEY. Copy apps/visitor-mobile/.env.example or apps/vendor-mobile/.env.example to .env and fill values from `supabase status`.",
     );
   }
   return { url, anonKey };

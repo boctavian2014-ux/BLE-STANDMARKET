@@ -1,3 +1,10 @@
+export {
+  GENERIC_ACTIVATION_ERROR,
+  fetchActiveMembership,
+  parseRedeemVendorResponse,
+  redeemVendorActivationCode,
+} from "./activation";
+export type { RedeemVendorResult, VendorMembership } from "./activation";
 export { createAuthController } from "./auth";
 export { getSupabaseClient, resetSupabaseClientForTests } from "./client";
 export { readSupabasePublicEnv } from "./env";
