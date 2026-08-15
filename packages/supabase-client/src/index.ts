@@ -1,9 +1,6 @@
-/**
- * Placeholder for a future local Supabase JS client.
- * Do not add @supabase/supabase-js, URLs, keys, or env reads in this package.
- */
-export const SUPABASE_CLIENT_PENDING = true as const;
-
-export type SupabaseClientPending = {
-  readonly pending: true;
-};
+export { createAuthController } from "./auth";
+export { getSupabaseClient, resetSupabaseClientForTests } from "./client";
+export { readSupabasePublicEnv } from "./env";
+export { SessionProvider, useSession } from "./session-context";
+export type { Profile, Session, SessionState, User } from "./types";
+export { useProfile } from "./use-profile";

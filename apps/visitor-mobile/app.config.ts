@@ -33,5 +33,6 @@ export default {
         backgroundColor: "#0B0F14",
       },
     },
+    plugins: ["expo-router"],
   },
 };
