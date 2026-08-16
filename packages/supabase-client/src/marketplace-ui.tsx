@@ -146,6 +146,7 @@ export const OfferCard = memo(function OfferCard({
   discountPercent,
   stand,
   zone,
+  imageUrl,
   imageLabel,
   discountLabel,
   hotLabel,
@@ -157,6 +158,7 @@ export const OfferCard = memo(function OfferCard({
   discountPercent: number | null;
   stand: string;
   zone?: string;
+  imageUrl?: string | null;
   imageLabel: string;
   discountLabel: string;
   hotLabel: string;
@@ -175,7 +177,7 @@ export const OfferCard = memo(function OfferCard({
     <>
       <View style={{ position: "relative" }}>
         <LazyImage
-          uri={null}
+          uri={imageUrl}
           label={imageLabel}
           size="lg"
           initial={placeholderInitial(title)}

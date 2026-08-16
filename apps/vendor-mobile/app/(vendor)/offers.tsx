@@ -4,19 +4,29 @@ import {
   fetchActiveMembership,
   getSupabaseClient,
   LazyImage,
+  MAX_OFFER_IMAGE_BYTES,
+  OFFER_IMAGE_TOO_LARGE,
   QueryGate,
+  bytesFromBase64,
+  deleteOfferImage,
+  offerImagePath,
+  uploadOfferImage,
   usePostgresChanges,
   useQueuedAction,
   useSession,
+  useToast,
 } from "@standmarket/supabase-client";
 import { colors, useTranslation } from "@standmarket/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { memo, useCallback, useState } from "react";
-import { FlatList, Text, TextInput, View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as ImagePicker from "expo-image-picker";
+import { memo, useCallback, useEffect, useState } from "react";
+import { AppState, FlatList, Text, TextInput, View } from "react-native";
 import {
   createVendorOffer,
   fetchVendorOffers,
   fetchVendorStand,
+  setVendorOfferImage,
   toggleVendorOfferStatus,
   updateVendorOffer,
   type OfferDraft,
@@ -26,6 +36,61 @@ import {
 import { screenStyles } from "../../lib/styles";
 
 const STATUSES: OfferStatus[] = ["draft", "active", "paused"];
+
+type ParkedForm = {
+  form: OfferDraft;
+  editingId: string | null;
+  photoUri: string | null;
+  photoBase64: string | null;
+  photoAction: "keep" | "replace" | "remove";
+  pickerOpen?: boolean;
+};
+
+const PARK_KEY = "sm_vendor_offer_form";
+let parkedForm: ParkedForm | null = null;
+
+async function writePark(next: ParkedForm | null): Promise<void> {
+  parkedForm = next;
+  if (!next) {
+    await AsyncStorage.removeItem(PARK_KEY);
+    return;
+  }
+  await AsyncStorage.setItem(PARK_KEY, JSON.stringify(next));
+}
+
+async function readPark(): Promise<ParkedForm | null> {
+  if (parkedForm) {
+    return parkedForm;
+  }
+  const raw = await AsyncStorage.getItem(PARK_KEY);
+  if (!raw) {
+    return null;
+  }
+  parkedForm = JSON.parse(raw) as ParkedForm;
+  return parkedForm;
+}
+
+function applyPickedAsset(
+  asset: ImagePicker.ImagePickerAsset | undefined,
+): Pick<ParkedForm, "photoUri" | "photoBase64" | "photoAction"> | "too-big" | null {
+  if (!asset) {
+    return null;
+  }
+  if (asset.fileSize != null && asset.fileSize > MAX_OFFER_IMAGE_BYTES) {
+    return "too-big";
+  }
+  if (
+    asset.base64 &&
+    Math.floor((asset.base64.length * 3) / 4) > MAX_OFFER_IMAGE_BYTES
+  ) {
+    return "too-big";
+  }
+  return {
+    photoUri: asset.uri,
+    photoBase64: asset.base64 ?? null,
+    photoAction: "replace",
+  };
+}
 
 const emptyDraft: OfferDraft = {
   product_name: "",
@@ -76,7 +141,7 @@ const OfferRow = memo(function OfferRow({
       style={screenStyles.card}
     >
       <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <LazyImage label={labels.image} />
+        <LazyImage uri={item.image_url} label={labels.image} />
         <View style={{ flex: 1 }}>
           <Text style={screenStyles.body}>{item.product_name}</Text>
           <Text style={screenStyles.muted}>
@@ -116,9 +181,94 @@ export default function OffersScreen() {
   const queryClient = useQueryClient();
   const runQueued = useQueuedAction();
   const { t } = useTranslation();
+  const showToast = useToast();
   const userId = session?.user.id ?? "";
-  const [form, setForm] = useState<OfferDraft | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState<OfferDraft | null>(
+    () => parkedForm?.form ?? null,
+  );
+  const [editingId, setEditingId] = useState<string | null>(
+    () => parkedForm?.editingId ?? null,
+  );
+  const [photoUri, setPhotoUri] = useState<string | null>(
+    () => parkedForm?.photoUri ?? null,
+  );
+  const [photoAction, setPhotoAction] = useState<"keep" | "replace" | "remove">(
+    () => parkedForm?.photoAction ?? "keep",
+  );
+  const [photoBase64, setPhotoBase64] = useState<string | null>(
+    () => parkedForm?.photoBase64 ?? null,
+  );
+  const [pickerOpen, setPickerOpen] = useState(
+    () => parkedForm?.pickerOpen ?? false,
+  );
+  const [pickerGuard, setPickerGuard] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const armPickerGuard = useCallback(() => {
+    setPickerGuard(true);
+    setTimeout(() => setPickerGuard(false), 1000);
+  }, []);
+
+  const applyParked = useCallback((next: ParkedForm) => {
+    setForm(next.form);
+    setEditingId(next.editingId);
+    setPhotoUri(next.photoUri);
+    setPhotoBase64(next.photoBase64);
+    setPhotoAction(next.photoAction);
+    setPickerOpen(Boolean(next.pickerOpen));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const hydrate = async () => {
+      const parked = await readPark();
+      if (cancelled) {
+        return;
+      }
+      if (parked) {
+        applyParked(parked);
+      }
+      if (!parked?.pickerOpen) {
+        return;
+      }
+      const pending = await ImagePicker.getPendingResultAsync();
+      if (cancelled || !pending || !("canceled" in pending)) {
+        return;
+      }
+      if (pending.canceled) {
+        await writePark({ ...parked, pickerOpen: false });
+        armPickerGuard();
+        return;
+      }
+      const picked = applyPickedAsset(pending.assets?.[0]);
+      if (picked === "too-big") {
+        await writePark({ ...parked, pickerOpen: false });
+        armPickerGuard();
+        showToast(t("offers.photoTooBig"), "error");
+        return;
+      }
+      const base = parkedForm ?? parked;
+      if (!picked || !base) {
+        return;
+      }
+      const next = { ...base, ...picked, pickerOpen: false };
+      await writePark(next);
+      if (!cancelled) {
+        applyParked(next);
+        armPickerGuard();
+      }
+    };
+    void hydrate();
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        void hydrate();
+      }
+    });
+    return () => {
+      cancelled = true;
+      sub.remove();
+    };
+  }, [applyParked, armPickerGuard, showToast, t]);
 
   const membership = useQuery({
     queryKey: ["membership", userId],
@@ -163,15 +313,53 @@ export default function OffersScreen() {
       if (!form.product_name.trim()) {
         throw new Error("Title is required");
       }
+      const expoId = stand.data?.expo_id;
+      let offerId = editingId;
       if (editingId) {
         await updateVendorOffer(editingId, form);
       } else {
-        await createVendorOffer(
+        offerId = await createVendorOffer(
           standId,
           userId,
           form,
           stand.data?.category ?? null,
         );
+      }
+      if (!offerId || !expoId) {
+        return;
+      }
+      if (photoAction === "replace" && (photoBase64 || photoUri)) {
+        setUploading(true);
+        try {
+          const url = await uploadOfferImage(
+            offerId,
+            standId,
+            expoId,
+            photoUri ?? "offer.jpg",
+            undefined,
+            photoBase64
+              ? async () => bytesFromBase64(photoBase64)
+              : undefined,
+          );
+          await setVendorOfferImage(offerId, url);
+        } catch (error) {
+          const tooBig =
+            error instanceof Error && error.message === OFFER_IMAGE_TOO_LARGE;
+          showToast(
+            tooBig ? t("offers.photoTooBig") : t("offers.uploadFailed"),
+            "error",
+          );
+        } finally {
+          setUploading(false);
+        }
+      }
+      if (photoAction === "remove") {
+        try {
+          await deleteOfferImage(offerImagePath(expoId, standId, offerId));
+        } catch {
+          // Best effort if the object is already missing.
+        }
+        await setVendorOfferImage(offerId, null);
       }
     },
     onSuccess: async () => {
@@ -206,10 +394,28 @@ export default function OffersScreen() {
       },
       t("offers.saved"),
     ).then(() => {
+      void writePark(null);
       setForm(null);
       setEditingId(null);
+      setPhotoUri(null);
+      setPhotoBase64(null);
+      setPhotoAction("keep");
+      setPickerOpen(false);
     });
-  }, [editingId, form, runQueued, save, stand.data?.category, standId, t, userId]);
+  }, [
+    editingId,
+    form,
+    photoAction,
+    photoBase64,
+    photoUri,
+    runQueued,
+    save,
+    stand.data?.category,
+    stand.data?.expo_id,
+    standId,
+    t,
+    userId,
+  ]);
 
   const onToggle = useCallback(
     (offer: VendorOffer) => {
@@ -226,9 +432,101 @@ export default function OffersScreen() {
   );
 
   const onEdit = useCallback((offer: VendorOffer) => {
-    setEditingId(offer.id);
-    setForm(draftFromOffer(offer));
+    const next: ParkedForm = {
+      form: draftFromOffer(offer),
+      editingId: offer.id,
+      photoUri: offer.image_url,
+      photoBase64: null,
+      photoAction: "keep",
+    };
+    void writePark(next);
+    applyParked(next);
+  }, [applyParked]);
+
+  const resetForm = useCallback(() => {
+    void writePark(null);
+    setForm(null);
+    setEditingId(null);
+    setPhotoUri(null);
+    setPhotoBase64(null);
+    setPhotoAction("keep");
+    setPickerOpen(false);
   }, []);
+
+  const parkFields = useCallback(
+    (nextForm: OfferDraft) => {
+      void writePark({
+        form: nextForm,
+        editingId,
+        photoUri,
+        photoBase64,
+        photoAction,
+      });
+    },
+    [editingId, photoAction, photoBase64, photoUri],
+  );
+
+  const onPickPhoto = useCallback(async () => {
+    if (!form) {
+      return;
+    }
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      showToast(t("offers.photoLibraryPermission"), "error");
+      return;
+    }
+    setPickerOpen(true);
+    await writePark({
+      form,
+      editingId,
+      photoUri,
+      photoBase64,
+      photoAction,
+      pickerOpen: true,
+    });
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 1,
+      base64: true,
+    });
+    if (result.canceled) {
+      const parked = {
+        form,
+        editingId,
+        photoUri,
+        photoBase64,
+        photoAction,
+        pickerOpen: false,
+      };
+      await writePark(parked);
+      applyParked(parked);
+      armPickerGuard();
+      return;
+    }
+    const next = applyPickedAsset(result.assets[0]);
+    if (next === "too-big") {
+      const parked = {
+        form,
+        editingId,
+        photoUri,
+        photoBase64,
+        photoAction,
+        pickerOpen: false,
+      };
+      await writePark(parked);
+      applyParked(parked);
+      armPickerGuard();
+      showToast(t("offers.photoTooBig"), "error");
+      return;
+    }
+    if (!next) {
+      return;
+    }
+    const parked = { form, editingId, ...next, pickerOpen: false };
+    await writePark(parked);
+    applyParked(parked);
+    armPickerGuard();
+  }, [applyParked, armPickerGuard, editingId, form, photoAction, photoBase64, photoUri, showToast, t]);
 
   if (form) {
     return (
@@ -239,7 +537,11 @@ export default function OffersScreen() {
         <TextInput
           accessibilityLabel={t("offers.titleLabel")}
           accessibilityHint={t("offers.titleHint")}
-          onChangeText={(product_name) => setForm({ ...form, product_name })}
+          onChangeText={(product_name) => {
+            const next = { ...form, product_name };
+            setForm(next);
+            parkFields(next);
+          }}
           placeholder={t("offers.title")}
           placeholderTextColor={colors.mutedAA}
           style={screenStyles.input}
@@ -249,7 +551,11 @@ export default function OffersScreen() {
           accessibilityLabel={t("offers.descriptionLabel")}
           accessibilityHint={t("offers.descriptionHint")}
           multiline
-          onChangeText={(description) => setForm({ ...form, description })}
+          onChangeText={(description) => {
+            const next = { ...form, description };
+            setForm(next);
+            parkFields(next);
+          }}
           placeholder={t("offers.description")}
           placeholderTextColor={colors.mutedAA}
           style={screenStyles.input}
@@ -259,9 +565,11 @@ export default function OffersScreen() {
           accessibilityLabel={t("offers.discountLabel")}
           accessibilityHint={t("offers.discountHint")}
           keyboardType="decimal-pad"
-          onChangeText={(discount_percent) =>
-            setForm({ ...form, discount_percent })
-          }
+          onChangeText={(discount_percent) => {
+            const next = { ...form, discount_percent };
+            setForm(next);
+            parkFields(next);
+          }}
           placeholder={t("offers.discount")}
           placeholderTextColor={colors.mutedAA}
           style={screenStyles.input}
@@ -275,7 +583,11 @@ export default function OffersScreen() {
                 status: t(`offers.status.${status}`),
               })}
               hint={t("offers.statusHint")}
-              onPress={() => setForm({ ...form, status })}
+              onPress={() => {
+                const next = { ...form, status };
+                setForm(next);
+                parkFields(next);
+              }}
               style={[
                 screenStyles.chip,
                 form.status === status ? screenStyles.chipActive : null,
@@ -293,24 +605,64 @@ export default function OffersScreen() {
             </A11yButton>
           ))}
         </View>
+        <LazyImage
+          uri={photoUri}
+          label={t("offers.image", { name: form.product_name || t("offers.title") })}
+          size="lg"
+          initial={form.product_name.trim().slice(0, 1).toUpperCase() || "?"}
+        />
         <A11yButton
-          disabled={save.isPending}
+          disabled={uploading || save.isPending || pickerOpen || pickerGuard}
+          label={photoUri ? t("offers.changePhoto") : t("offers.addPhoto")}
+          onPress={() => void onPickPhoto()}
+          style={screenStyles.buttonSecondary}
+        >
+          <Text style={screenStyles.buttonLabelOnSurface}>
+            {uploading
+              ? t("offers.uploading")
+              : photoUri
+                ? t("offers.changePhoto")
+                : t("offers.addPhoto")}
+          </Text>
+        </A11yButton>
+        {photoUri ? (
+          <A11yButton
+            disabled={uploading || save.isPending || pickerOpen || pickerGuard}
+            label={t("offers.removePhoto")}
+            onPress={() => {
+              const next: ParkedForm = {
+                form,
+                editingId,
+                photoUri: null,
+                photoBase64: null,
+                photoAction: "remove",
+              };
+              void writePark(next);
+              applyParked(next);
+            }}
+            style={screenStyles.buttonSecondary}
+          >
+            <Text style={screenStyles.buttonLabelOnSurface}>
+              {t("offers.removePhoto")}
+            </Text>
+          </A11yButton>
+        ) : null}
+        <A11yButton
+          disabled={save.isPending || uploading || pickerOpen || pickerGuard}
           label={t("offers.saveLabel")}
           hint={t("offers.saveHint")}
           onPress={onSave}
           style={screenStyles.button}
         >
           <Text style={screenStyles.buttonLabel}>
-            {save.isPending ? t("offers.saving") : t("offers.save")}
+            {save.isPending || uploading ? t("offers.saving") : t("offers.save")}
           </Text>
         </A11yButton>
         <A11yButton
+          disabled={pickerOpen || pickerGuard}
           label={t("offers.cancel")}
           hint={t("offers.cancelHint")}
-          onPress={() => {
-            setForm(null);
-            setEditingId(null);
-          }}
+          onPress={resetForm}
           style={screenStyles.buttonSecondary}
         >
           <Text style={screenStyles.buttonLabelOnSurface}>{t("offers.cancel")}</Text>
@@ -333,8 +685,15 @@ export default function OffersScreen() {
           label={t("offers.add")}
           hint={t("offers.addHint")}
           onPress={() => {
-            setEditingId(null);
-            setForm(emptyDraft);
+            const next: ParkedForm = {
+              form: emptyDraft,
+              editingId: null,
+              photoUri: null,
+              photoBase64: null,
+              photoAction: "keep",
+            };
+            void writePark(next);
+            applyParked(next);
           }}
           style={screenStyles.button}
         >

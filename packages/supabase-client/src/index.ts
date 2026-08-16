@@ -57,6 +57,17 @@ export {
 } from "./marketplace";
 export { EmptyState, OfferCard, SectionHeader } from "./marketplace-ui";
 export {
+  MAX_OFFER_IMAGE_BYTES,
+  OFFER_IMAGES_BUCKET,
+  OFFER_IMAGE_TOO_LARGE,
+  assertOfferImageSize,
+  bytesFromBase64,
+  deleteOfferImage,
+  getOfferImageUrl,
+  offerImagePath,
+  uploadOfferImage,
+} from "./offer-images";
+export {
   OFFLINE_QUEUE_KEY,
   createMemoryStore,
   enqueueMutation,

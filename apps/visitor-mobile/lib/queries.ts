@@ -10,6 +10,7 @@ export type OfferListItem = {
   hall: string | null;
   zone: string | null;
   category: string | null;
+  image_url: string | null;
 };
 
 export type StandListItem = {
@@ -38,7 +39,7 @@ export async function fetchActiveOffers(): Promise<OfferListItem[]> {
   const { data, error } = await getSupabaseClient()
     .from("offers")
     .select(
-      "id, product_name, discount_percent, stand_id, stands(name, expo_id, hall, zone, category)",
+      "id, product_name, discount_percent, stand_id, image_url, stands(name, expo_id, hall, zone, category)",
     )
     .eq("status", "active");
   if (error) {
@@ -143,6 +144,7 @@ function mapOffer(row: {
   product_name: unknown;
   discount_percent: unknown;
   stand_id: unknown;
+  image_url?: unknown;
   stands: unknown;
 }): OfferListItem {
   const stand = row.stands as
@@ -172,6 +174,7 @@ function mapOffer(row: {
     hall: standRow?.hall ?? null,
     zone: standRow?.zone ?? null,
     category: standRow?.category ?? null,
+    image_url: (row.image_url as string | null) ?? null,
   };
 }
 

@@ -121,6 +121,7 @@ export default function HomeScreen() {
         discountPercent={item.discount_percent}
         stand={item.stand_name ?? ""}
         zone={item.zone ?? undefined}
+        imageUrl={item.image_url}
         imageLabel={t("home.image", { name: item.product_name })}
         discountLabel={discountLabel}
         hotLabel={t("home.hot")}
