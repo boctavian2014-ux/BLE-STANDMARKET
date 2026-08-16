@@ -5,7 +5,7 @@ import {
   useSession,
   useToast,
 } from "@standmarket/supabase-client";
-import { useTranslation } from "@standmarket/ui";
+import { colors, LANGUAGES, spacing, useTranslation } from "@standmarket/ui";
 import { useState } from "react";
 import { Text, View } from "react-native";
 import { screenStyles } from "../../lib/styles";
@@ -16,6 +16,9 @@ export default function ProfileScreen() {
   const { t, language, setLanguage } = useTranslation();
   const showToast = useToast();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [languageOpen, setLanguageOpen] = useState(false);
+  const currentLanguage =
+    LANGUAGES.find((item) => item.code === language) ?? LANGUAGES[0];
 
   async function onLogOut() {
     setLoggingOut(true);
@@ -44,48 +47,49 @@ export default function ProfileScreen() {
         </View>
         <View style={screenStyles.card}>
           <Text style={screenStyles.muted}>{t("profile.language")}</Text>
-          <View style={screenStyles.row}>
-            <A11yButton
-              label={t("profile.languageRo")}
-              hint={t("profile.languageRoHint")}
-              onPress={() => setLanguage("ro")}
-              style={[
-                screenStyles.button,
-                language !== "ro" ? screenStyles.buttonSecondary : null,
-                { flex: 1, marginTop: 0 },
-              ]}
-            >
-              <Text
-                style={
-                  language === "ro"
-                    ? screenStyles.buttonLabel
-                    : screenStyles.buttonLabelOnSurface
-                }
-              >
-                {t("profile.languageRo")}
-              </Text>
-            </A11yButton>
-            <A11yButton
-              label={t("profile.languageEn")}
-              hint={t("profile.languageEnHint")}
-              onPress={() => setLanguage("en")}
-              style={[
-                screenStyles.button,
-                language !== "en" ? screenStyles.buttonSecondary : null,
-                { flex: 1, marginTop: 0 },
-              ]}
-            >
-              <Text
-                style={
-                  language === "en"
-                    ? screenStyles.buttonLabel
-                    : screenStyles.buttonLabelOnSurface
-                }
-              >
-                {t("profile.languageEn")}
-              </Text>
-            </A11yButton>
-          </View>
+          <A11yButton
+            label={`${t("profile.language")}, ${currentLanguage.nativeName}`}
+            hint={t("profile.languageHint")}
+            onPress={() => setLanguageOpen((open) => !open)}
+            style={[screenStyles.buttonSecondary, { marginTop: spacing.sm }]}
+          >
+            <Text style={screenStyles.buttonLabelOnSurface}>
+              {currentLanguage.nativeName}
+            </Text>
+          </A11yButton>
+          {languageOpen
+            ? LANGUAGES.map((item) => {
+                const active = language === item.code;
+                return (
+                  <A11yButton
+                    key={item.code}
+                    label={
+                      active
+                        ? `${item.nativeName}, ${t("profile.languageSelected")}`
+                        : item.nativeName
+                    }
+                    hint={t("profile.languageOptionHint", {
+                      name: item.nativeName,
+                    })}
+                    onPress={() => {
+                      setLanguage(item.code);
+                      setLanguageOpen(false);
+                    }}
+                    style={[
+                      screenStyles.buttonSecondary,
+                      {
+                        borderWidth: 1,
+                        borderColor: active ? colors.accent : "transparent",
+                      },
+                    ]}
+                  >
+                    <Text style={screenStyles.buttonLabelOnSurface}>
+                      {item.nativeName}
+                    </Text>
+                  </A11yButton>
+                );
+              })
+            : null}
         </View>
         <A11yButton
           disabled={loggingOut}
