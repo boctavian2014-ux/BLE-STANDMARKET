@@ -95,6 +95,9 @@ export const ro = {
   "profile.languageEn": "EN",
   "profile.languageRoHint": "Comută interfața în română",
   "profile.languageEnHint": "Comută interfața în engleză",
+  "profile.languageHint": "Alege limba interfeței",
+  "profile.languageOptionHint": "Comută interfața în {name}",
+  "profile.languageSelected": "Selectată",
 
   "scan.waiting": "Așteaptă beacon, QR sau NFC.",
   "scan.invalidQr": "QR/NFC invalid. Aștept sm:offer:<id>.",

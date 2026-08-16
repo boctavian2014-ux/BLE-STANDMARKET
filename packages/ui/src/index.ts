@@ -33,11 +33,13 @@ export const typography = {
 } as const;
 
 export {
+  LANGUAGES,
   LANGUAGE_STORAGE_KEY,
   LanguageProvider,
   createMemoryLanguageStore,
   detectDeviceLanguage,
   interpolate,
+  isLanguage,
   lookup,
   mapVisibleError,
   persistLanguage,

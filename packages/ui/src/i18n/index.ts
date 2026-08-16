@@ -1,9 +1,20 @@
 // @ts-expect-error -- workspace resolves `react` to a parent install without types
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { en } from "./en";
+import { fr } from "./fr";
+import { it } from "./it";
 import { ro } from "./ro";
+import { zhCN } from "./zh-CN";
 
-export type Language = "ro" | "en";
+export const LANGUAGES = [
+  { code: "ro", nativeName: "Română" },
+  { code: "en", nativeName: "English" },
+  { code: "fr", nativeName: "Français" },
+  { code: "it", nativeName: "Italiano" },
+  { code: "zh-CN", nativeName: "简体中文" },
+] as const;
+
+export type Language = (typeof LANGUAGES)[number]["code"];
 export type TranslateVars = Record<string, string | number>;
 export type LanguageStore = {
   getItem: (key: string) => Promise<string | null>;
@@ -17,7 +28,14 @@ export const LANGUAGE_STORAGE_KEY = "sm_language";
 const dictionaries: Record<Language, Dictionary> = {
   ro: ro as Dictionary,
   en: en as Dictionary,
+  fr: fr as Dictionary,
+  it: it as Dictionary,
+  "zh-CN": zhCN as Dictionary,
 };
+
+export function isLanguage(value: string | null | undefined): value is Language {
+  return LANGUAGES.some((item) => item.code === value);
+}
 
 const ERROR_MAP: Array<{ match: string; key: string }> = [
   { match: "Invalid login credentials", key: "errors.signInFailed" },
@@ -73,10 +91,12 @@ export function detectDeviceLanguage(): Language {
       getLocales?: () => Array<{ languageCode?: string }>;
       locale?: string;
     };
-    const code =
-      Localization.getLocales?.()[0]?.languageCode ??
-      Localization.locale?.slice(0, 2);
-    if (code === "en" || code === "ro") {
+    const locale = Localization.getLocales?.()[0];
+    const code = locale?.languageCode ?? Localization.locale?.slice(0, 2);
+    if (code === "zh") {
+      return "zh-CN";
+    }
+    if (isLanguage(code)) {
       return code;
     }
   } catch {
@@ -103,7 +123,7 @@ export async function readStoredLanguage(
   store: LanguageStore,
 ): Promise<Language | null> {
   const raw = await store.getItem(LANGUAGE_STORAGE_KEY);
-  return raw === "en" || raw === "ro" ? raw : null;
+  return isLanguage(raw) ? raw : null;
 }
 
 export async function persistLanguage(

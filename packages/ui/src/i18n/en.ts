@@ -95,6 +95,9 @@ export const en = {
   "profile.languageEn": "EN",
   "profile.languageRoHint": "Switch the interface to Romanian",
   "profile.languageEnHint": "Switch the interface to English",
+  "profile.languageHint": "Choose the interface language",
+  "profile.languageOptionHint": "Switch the interface to {name}",
+  "profile.languageSelected": "Selected",
 
   "scan.waiting": "Waiting for a beacon, QR, or NFC.",
   "scan.invalidQr": "Invalid QR/NFC. Expected sm:offer:<id>.",
