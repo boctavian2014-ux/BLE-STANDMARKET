@@ -61,6 +61,7 @@ export {
   OFFER_IMAGES_BUCKET,
   OFFER_IMAGE_TOO_LARGE,
   assertOfferImageSize,
+  bytesFromBase64,
   deleteOfferImage,
   getOfferImageUrl,
   offerImagePath,

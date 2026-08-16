@@ -3,6 +3,7 @@ import {
   MAX_OFFER_IMAGE_BYTES,
   OFFER_IMAGE_TOO_LARGE,
   assertOfferImageSize,
+  bytesFromBase64,
   getOfferImageUrl,
   offerImagePath,
 } from "./offer-images";
@@ -28,6 +29,10 @@ test("offer image size rejects files over 2MB", () => {
   expect(() => assertOfferImageSize(MAX_OFFER_IMAGE_BYTES + 1)).toThrow(
     OFFER_IMAGE_TOO_LARGE,
   );
+});
+
+test("bytesFromBase64 decodes ASCII payload", () => {
+  expect(Array.from(bytesFromBase64("U00="))).toEqual([83, 77]);
 });
 
 test("public offer image URL uses the offer-images bucket", () => {
