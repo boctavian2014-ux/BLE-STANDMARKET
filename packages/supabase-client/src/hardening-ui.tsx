@@ -48,7 +48,7 @@ type HardeningValue = {
 
 const HardeningContext = createContext<HardeningValue | null>(null);
 
-function noopToast(..._args: unknown[]) {}
+const noopToast: HardeningValue["showToast"] = () => {};
 
 export function useHardening(): HardeningValue {
   const value = useContext(HardeningContext);
