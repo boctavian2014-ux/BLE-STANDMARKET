@@ -14,6 +14,7 @@
   },
   "peerDependencies": {
     "@react-native-async-storage/async-storage": "*",
+    "@tanstack/react-query": "*",
     "react": "*",
     "react-native": "*"
   },

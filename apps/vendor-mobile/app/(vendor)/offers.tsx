@@ -1,20 +1,16 @@
 import {
+  A11yButton,
   fetchActiveMembership,
   getSupabaseClient,
+  LazyImage,
+  QueryGate,
   usePostgresChanges,
+  useQueuedAction,
   useSession,
 } from "@standmarket/supabase-client";
-import { colors } from "@standmarket/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { memo, useCallback, useState } from "react";
+import { FlatList, Text, TextInput, View } from "react-native";
 import {
   createVendorOffer,
   fetchVendorOffers,
@@ -46,13 +42,71 @@ function draftFromOffer(offer: VendorOffer): OfferDraft {
   };
 }
 
+const OfferRow = memo(function OfferRow({
+  item,
+  onEdit,
+  onToggle,
+  toggling,
+}: {
+  item: VendorOffer;
+  onEdit: (offer: VendorOffer) => void;
+  onToggle: (offer: VendorOffer) => void;
+  toggling: boolean;
+}) {
+  return (
+    <View
+      accessibilityLabel={`${item.product_name}, ${item.status}`}
+      style={screenStyles.card}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <LazyImage label={`Imagine ${item.product_name}`} />
+        <View style={{ flex: 1 }}>
+          <Text style={screenStyles.body}>{item.product_name}</Text>
+          <Text style={screenStyles.muted}>
+            {item.discount_percent != null
+              ? `${item.discount_percent}%`
+              : "Fără discount"}
+            {" · "}
+            {item.status}
+          </Text>
+        </View>
+      </View>
+      <View style={screenStyles.row}>
+        <A11yButton
+          label={`Editează ${item.product_name}`}
+          hint="Deschide formularul de editare"
+          onPress={() => onEdit(item)}
+          style={[screenStyles.chip, { flex: 1 }]}
+        >
+          <Text style={screenStyles.buttonLabelOnSurface}>Editează</Text>
+        </A11yButton>
+        <A11yButton
+          disabled={toggling}
+          label={
+            item.status === "active"
+              ? `Pauzează ${item.product_name}`
+              : `Activează ${item.product_name}`
+          }
+          hint="Schimbă statusul ofertei"
+          onPress={() => onToggle(item)}
+          style={[screenStyles.chip, { flex: 1 }]}
+        >
+          <Text style={screenStyles.buttonLabelOnSurface}>
+            {item.status === "active" ? "Pauzează" : "Activează"}
+          </Text>
+        </A11yButton>
+      </View>
+    </View>
+  );
+});
+
 export default function OffersScreen() {
   const { session } = useSession();
   const queryClient = useQueryClient();
+  const runQueued = useQueuedAction();
   const userId = session?.user.id ?? "";
   const [form, setForm] = useState<OfferDraft | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formError, setFormError] = useState<string | null>(null);
 
   const membership = useQuery({
     queryKey: ["membership", userId],
@@ -100,17 +154,16 @@ export default function OffersScreen() {
       if (editingId) {
         await updateVendorOffer(editingId, form);
       } else {
-        await createVendorOffer(standId, userId, form, stand.data?.category ?? null);
+        await createVendorOffer(
+          standId,
+          userId,
+          form,
+          stand.data?.category ?? null,
+        );
       }
     },
     onSuccess: async () => {
-      setForm(null);
-      setEditingId(null);
-      setFormError(null);
       await queryClient.invalidateQueries({ queryKey: ["vendor-offers", standId] });
-    },
-    onError: (caught) => {
-      setFormError(caught instanceof Error ? caught.message : "Save failed");
     },
   });
 
@@ -122,154 +175,173 @@ export default function OffersScreen() {
     },
   });
 
-  if (membership.isLoading || offers.isLoading) {
-    return (
-      <View style={screenStyles.root}>
-        <ActivityIndicator color={colors.accent} />
-      </View>
-    );
-  }
+  const onSave = useCallback(() => {
+    if (!form || !standId || !userId) {
+      return;
+    }
+    void runQueued(
+      editingId ? "updateOffer" : "createOffer",
+      editingId
+        ? { offerId: editingId, draft: form }
+        : {
+            standId,
+            userId,
+            draft: form,
+            category: stand.data?.category ?? null,
+          },
+      async () => {
+        await save.mutateAsync();
+      },
+      "Ofertă salvată",
+    ).then(() => {
+      setForm(null);
+      setEditingId(null);
+    });
+  }, [editingId, form, runQueued, save, stand.data?.category, standId, userId]);
 
-  if (membership.isError || offers.isError) {
-    return (
-      <View style={screenStyles.root}>
-        <Text style={screenStyles.error}>
-          {membership.error instanceof Error
-            ? membership.error.message
-            : offers.error instanceof Error
-              ? offers.error.message
-              : "Could not load offers"}
-        </Text>
-      </View>
-    );
-  }
+  const onToggle = useCallback(
+    (offer: VendorOffer) => {
+      void runQueued(
+        "toggleOffer",
+        { offerId: offer.id, current: offer.status },
+        async () => {
+          await toggle.mutateAsync(offer);
+        },
+        offer.status === "active" ? "Ofertă pusă pe pauză" : "Ofertă activată",
+      );
+    },
+    [runQueued, toggle],
+  );
+
+  const onEdit = useCallback((offer: VendorOffer) => {
+    setEditingId(offer.id);
+    setForm(draftFromOffer(offer));
+  }, []);
 
   if (form) {
     return (
       <View style={screenStyles.root}>
-        <Text style={screenStyles.title}>
+        <Text accessibilityRole="header" style={screenStyles.title}>
           {editingId ? "Editează ofertă" : "Adaugă ofertă"}
         </Text>
         <TextInput
+          accessibilityLabel="Titlu ofertă"
+          accessibilityHint="Numele produsului"
           onChangeText={(product_name) => setForm({ ...form, product_name })}
           placeholder="Titlu"
-          placeholderTextColor="#9AA4B2"
+          placeholderTextColor="#C5CDD6"
           style={screenStyles.input}
           value={form.product_name}
         />
         <TextInput
+          accessibilityLabel="Descriere ofertă"
+          accessibilityHint="Detalii opționale"
           multiline
           onChangeText={(description) => setForm({ ...form, description })}
           placeholder="Descriere"
-          placeholderTextColor="#9AA4B2"
+          placeholderTextColor="#C5CDD6"
           style={screenStyles.input}
           value={form.description}
         />
         <TextInput
+          accessibilityLabel="Discount procent"
+          accessibilityHint="Valoare între 0 și 100"
           keyboardType="decimal-pad"
           onChangeText={(discount_percent) =>
             setForm({ ...form, discount_percent })
           }
           placeholder="Discount %"
-          placeholderTextColor="#9AA4B2"
+          placeholderTextColor="#C5CDD6"
           style={screenStyles.input}
           value={form.discount_percent}
         />
         <View style={screenStyles.row}>
           {STATUSES.map((status) => (
-            <Pressable
+            <A11yButton
               key={status}
+              label={`Status ${status}`}
+              hint="Selectează statusul ofertei"
               onPress={() => setForm({ ...form, status })}
               style={[
                 screenStyles.chip,
                 form.status === status ? screenStyles.chipActive : null,
               ]}
             >
-              <Text style={screenStyles.buttonLabel}>{status}</Text>
-            </Pressable>
+              <Text
+                style={
+                  form.status === status
+                    ? screenStyles.buttonLabel
+                    : screenStyles.buttonLabelOnSurface
+                }
+              >
+                {status}
+              </Text>
+            </A11yButton>
           ))}
         </View>
-        {formError ? <Text style={screenStyles.error}>{formError}</Text> : null}
-        <Pressable
+        <A11yButton
           disabled={save.isPending}
-          onPress={() => void save.mutate()}
+          label="Salvează oferta"
+          hint="Trimite oferta sau o pune în coadă dacă ești offline"
+          onPress={onSave}
           style={screenStyles.button}
         >
           <Text style={screenStyles.buttonLabel}>
             {save.isPending ? "Se salvează…" : "Salvează"}
           </Text>
-        </Pressable>
-        <Pressable
+        </A11yButton>
+        <A11yButton
+          label="Anulează"
+          hint="Închide formularul fără salvare"
           onPress={() => {
             setForm(null);
             setEditingId(null);
-            setFormError(null);
           }}
           style={screenStyles.buttonSecondary}
         >
-          <Text style={screenStyles.buttonLabel}>Anulează</Text>
-        </Pressable>
+          <Text style={screenStyles.buttonLabelOnSurface}>Anulează</Text>
+        </A11yButton>
       </View>
     );
   }
 
   return (
-    <View style={screenStyles.root}>
-      <Pressable
-        onPress={() => {
-          setEditingId(null);
-          setFormError(null);
-          setForm(emptyDraft);
-        }}
-        style={screenStyles.button}
-      >
-        <Text style={screenStyles.buttonLabel}>Adaugă ofertă</Text>
-      </Pressable>
-      {toggle.isError ? (
-        <Text style={screenStyles.error}>
-          {toggle.error instanceof Error
-            ? toggle.error.message
-            : "Could not update offer"}
-        </Text>
-      ) : null}
-      <FlatList
-        data={offers.data ?? []}
-        keyExtractor={(item) => item.id}
-        ListEmptyComponent={
-          <Text style={screenStyles.muted}>Nicio ofertă pe acest stand</Text>
-        }
-        renderItem={({ item }) => (
-          <View style={screenStyles.card}>
-            <Text style={screenStyles.body}>{item.product_name}</Text>
-            <Text style={screenStyles.muted}>
-              {item.discount_percent != null ? `${item.discount_percent}%` : "Fără discount"}
-              {" · "}
-              {item.status}
-            </Text>
-            <View style={screenStyles.row}>
-              <Pressable
-                onPress={() => {
-                  setEditingId(item.id);
-                  setFormError(null);
-                  setForm(draftFromOffer(item));
-                }}
-                style={[screenStyles.chip, { flex: 1 }]}
-              >
-                <Text style={screenStyles.buttonLabel}>Editează</Text>
-              </Pressable>
-              <Pressable
-                disabled={toggle.isPending}
-                onPress={() => void toggle.mutate(item)}
-                style={[screenStyles.chip, { flex: 1 }]}
-              >
-                <Text style={screenStyles.buttonLabel}>
-                  {item.status === "active" ? "Pauzează" : "Activează"}
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        )}
-      />
-    </View>
+    <QueryGate
+      loading={membership.isLoading || offers.isLoading}
+      error={membership.error ?? offers.error}
+      onRetry={() => {
+        void membership.refetch();
+        void offers.refetch();
+      }}
+    >
+      <View style={screenStyles.root}>
+        <A11yButton
+          label="Adaugă ofertă"
+          hint="Deschide formularul pentru o ofertă nouă"
+          onPress={() => {
+            setEditingId(null);
+            setForm(emptyDraft);
+          }}
+          style={screenStyles.button}
+        >
+          <Text style={screenStyles.buttonLabel}>Adaugă ofertă</Text>
+        </A11yButton>
+        <FlatList
+          data={offers.data ?? []}
+          keyExtractor={(item) => item.id}
+          ListEmptyComponent={
+            <Text style={screenStyles.muted}>Nicio ofertă pe acest stand</Text>
+          }
+          renderItem={({ item }) => (
+            <OfferRow
+              item={item}
+              onEdit={onEdit}
+              onToggle={onToggle}
+              toggling={toggle.isPending}
+            />
+          )}
+        />
+      </View>
+    </QueryGate>
   );
 }

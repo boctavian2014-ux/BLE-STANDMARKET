@@ -1,14 +1,17 @@
 import {
+  ErrorBoundary,
   fetchActiveMembership,
   getSupabaseClient,
+  HardeningProvider,
+  QuerySkeleton,
   SessionProvider,
   useSession,
 } from "@standmarket/supabase-client";
-import { colors } from "@standmarket/ui";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect, type ReactNode } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { pingSupabase, offlineStore } from "../lib/hardening-setup";
+import { vendorOfflineHandlers } from "../lib/offline-handlers";
 import { queryClient } from "../lib/query-client";
 
 function VendorGate({ children }: { children: ReactNode }) {
@@ -54,18 +57,7 @@ function VendorGate({ children }: { children: ReactNode }) {
   ]);
 
   if (isLoading || (session && membership.isLoading)) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: colors.background,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <ActivityIndicator color={colors.accent} />
-      </View>
-    );
+    return <QuerySkeleton label="Se încarcă sesiunea vendor" />;
   }
 
   return children;
@@ -73,12 +65,20 @@ function VendorGate({ children }: { children: ReactNode }) {
 
 export default function RootLayout() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <SessionProvider>
-        <VendorGate>
-          <Stack screenOptions={{ headerShown: false }} />
-        </VendorGate>
-      </SessionProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <SessionProvider>
+          <HardeningProvider
+            ping={pingSupabase}
+            store={offlineStore}
+            handlers={vendorOfflineHandlers}
+          >
+            <VendorGate>
+              <Stack screenOptions={{ headerShown: false }} />
+            </VendorGate>
+          </HardeningProvider>
+        </SessionProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

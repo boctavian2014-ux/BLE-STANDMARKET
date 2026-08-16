@@ -1,10 +1,4 @@
+import { appQueryClientOptions } from "@standmarket/supabase-client";
 import { QueryClient } from "@tanstack/react-query";
 
-export const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      staleTime: 15_000,
-    },
-  },
-});
+export const queryClient = new QueryClient(appQueryClientOptions);

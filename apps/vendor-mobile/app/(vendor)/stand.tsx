@@ -1,12 +1,12 @@
 import {
   fetchActiveMembership,
   getSupabaseClient,
+  QueryGate,
   useSession,
 } from "@standmarket/supabase-client";
-import { colors } from "@standmarket/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import {
   fetchVendorStand,
   fetchVendorStandStats,
@@ -43,63 +43,55 @@ export default function StandScreen() {
       return;
     }
     recordedStand.current = stand.data.id;
-    void recordStandView(userId, stand.data.id, membership.data?.expo_id ?? null).catch(
-      () => undefined,
-    );
+    void recordStandView(
+      userId,
+      stand.data.id,
+      membership.data?.expo_id ?? null,
+    ).catch(() => undefined);
   }, [membership.data?.expo_id, stand.data, userId]);
 
-  if (membership.isLoading || stand.isLoading) {
-    return (
-      <View style={screenStyles.root}>
-        <ActivityIndicator color={colors.accent} />
-      </View>
-    );
-  }
-
-  if (membership.isError || stand.isError || !stand.data) {
-    return (
-      <View style={screenStyles.root}>
-        <Text style={screenStyles.error}>
-          {stand.error instanceof Error
-            ? stand.error.message
-            : "Could not load stand"}
-        </Text>
-      </View>
-    );
-  }
-
   return (
-    <View style={screenStyles.root}>
-      <View style={screenStyles.card}>
-        <Text style={screenStyles.muted}>Nume</Text>
-        <Text style={screenStyles.body}>{stand.data.name}</Text>
+    <QueryGate
+      loading={membership.isLoading || stand.isLoading || stats.isLoading}
+      error={membership.error ?? stand.error ?? stats.error}
+      onRetry={() => {
+        void membership.refetch();
+        void stand.refetch();
+        void stats.refetch();
+      }}
+    >
+      <View style={screenStyles.root}>
+        <View style={screenStyles.card}>
+          <Text style={screenStyles.muted}>Nume</Text>
+          <Text style={screenStyles.body}>{stand.data?.name}</Text>
+        </View>
+        <View style={screenStyles.card}>
+          <Text style={screenStyles.muted}>Hală</Text>
+          <Text style={screenStyles.body}>{stand.data?.hall}</Text>
+        </View>
+        <View style={screenStyles.card}>
+          <Text style={screenStyles.muted}>Zonă</Text>
+          <Text style={screenStyles.body}>{stand.data?.zone}</Text>
+        </View>
+        <View style={screenStyles.card}>
+          <Text style={screenStyles.muted}>Expo</Text>
+          <Text style={screenStyles.body}>{stand.data?.expo_name ?? "—"}</Text>
+        </View>
+        <View style={screenStyles.card}>
+          <Text style={screenStyles.muted}>Oferte active</Text>
+          <Text style={screenStyles.body}>
+            {stats.data?.activeOffers ?? "—"}
+          </Text>
+        </View>
+        <View style={screenStyles.card}>
+          <Text style={screenStyles.muted}>Views</Text>
+          <Text style={screenStyles.body}>{stats.data?.views ?? "—"}</Text>
+        </View>
+        <View style={screenStyles.card}>
+          <Text style={screenStyles.muted}>Redemptions</Text>
+          <Text style={screenStyles.body}>{stats.data?.redemptions ?? "—"}</Text>
+        </View>
       </View>
-      <View style={screenStyles.card}>
-        <Text style={screenStyles.muted}>Hală</Text>
-        <Text style={screenStyles.body}>{stand.data.hall}</Text>
-      </View>
-      <View style={screenStyles.card}>
-        <Text style={screenStyles.muted}>Zonă</Text>
-        <Text style={screenStyles.body}>{stand.data.zone}</Text>
-      </View>
-      <View style={screenStyles.card}>
-        <Text style={screenStyles.muted}>Expo</Text>
-        <Text style={screenStyles.body}>{stand.data.expo_name ?? "—"}</Text>
-      </View>
-      <View style={screenStyles.card}>
-        <Text style={screenStyles.muted}>Oferte active</Text>
-        <Text style={screenStyles.body}>
-          {stats.data?.activeOffers ?? "—"}
-        </Text>
-      </View>
-      <View style={screenStyles.card}>
-        <Text style={screenStyles.muted}>Views</Text>
-        <Text style={screenStyles.body}>{stats.data?.views ?? "—"}</Text>
-      </View>
-      <View style={screenStyles.card}>
-        <Text style={screenStyles.muted}>Redemptions</Text>
-        <Text style={screenStyles.body}>{stats.data?.redemptions ?? "—"}</Text>
-      </View>
-    </View>
+    </QueryGate>
   );
 }

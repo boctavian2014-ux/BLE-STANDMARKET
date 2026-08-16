@@ -12,10 +12,22 @@ export default function VendorTabsLayout() {
         tabBarInactiveTintColor: colors.muted,
       }}
     >
-      <Tabs.Screen name="offers" options={{ title: "Oferte" }} />
-      <Tabs.Screen name="scan" options={{ title: "Validare" }} />
-      <Tabs.Screen name="stand" options={{ title: "Stand" }} />
-      <Tabs.Screen name="profile" options={{ title: "Profil" }} />
+      <Tabs.Screen
+        name="offers"
+        options={{ title: "Oferte", tabBarAccessibilityLabel: "Oferte" }}
+      />
+      <Tabs.Screen
+        name="scan"
+        options={{ title: "Validare", tabBarAccessibilityLabel: "Validare" }}
+      />
+      <Tabs.Screen
+        name="stand"
+        options={{ title: "Stand", tabBarAccessibilityLabel: "Stand" }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{ title: "Profil", tabBarAccessibilityLabel: "Profil" }}
+      />
     </Tabs>
   );
 }

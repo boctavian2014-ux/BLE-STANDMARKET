@@ -1,15 +1,13 @@
-import { parseScanPayload, useSession } from "@standmarket/supabase-client";
-import { colors } from "@standmarket/ui";
+import {
+  A11yButton,
+  parseScanPayload,
+  QuerySkeleton,
+  useSession,
+  useToast,
+} from "@standmarket/supabase-client";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { ScrollView, Text, TextInput, View } from "react-native";
 import {
   vendorNfcScanner,
   vendorQrScanner,
@@ -25,18 +23,17 @@ const { CameraView, useCameraPermissions } = loadCamera();
 
 export default function VendorScanScreen() {
   const { session } = useSession();
+  const showToast = useToast();
   const userId = session?.user.id ?? "";
   const [permission, requestPermission] = useCameraPermissions();
   const [manual, setManual] = useState("");
   const [result, setResult] = useState<RedemptionValidation | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const lastQrAt = useRef(0);
 
   const validate = useMutation({
     mutationFn: async (raw: string) => {
       const parsed = parseScanPayload(raw);
-      const code =
-        parsed?.type === "redemption" ? parsed.code : raw.trim();
+      const code = parsed?.type === "redemption" ? parsed.code : raw.trim();
       if (!code || parsed?.type === "offer") {
         throw new Error("Scan invalid. Aștept sm:rdm:<cod>.");
       }
@@ -44,11 +41,17 @@ export default function VendorScanScreen() {
     },
     onSuccess: (validation) => {
       setResult(validation);
-      setError(null);
+      showToast(
+        validation.status === "valid" ? "Redemption valid" : "Redemption invalid",
+        validation.status === "valid" ? "success" : "error",
+      );
     },
     onError: (caught) => {
       setResult(null);
-      setError(caught instanceof Error ? caught.message : "Validare eșuată");
+      showToast(
+        caught instanceof Error ? caught.message : "Validare eșuată",
+        "error",
+      );
     },
   });
 
@@ -58,16 +61,20 @@ export default function VendorScanScreen() {
     }
     let stopQr: (() => void) | undefined;
     let stopNfc: (() => void) | undefined;
-    void vendorQrScanner.start((raw) => {
-      validate.mutate(raw);
-    }).then((stop) => {
-      stopQr = stop;
-    });
-    void vendorNfcScanner.start((raw) => {
-      validate.mutate(raw);
-    }).then((stop) => {
-      stopNfc = stop;
-    });
+    void vendorQrScanner
+      .start((raw) => {
+        validate.mutate(raw);
+      })
+      .then((stop) => {
+        stopQr = stop;
+      });
+    void vendorNfcScanner
+      .start((raw) => {
+        validate.mutate(raw);
+      })
+      .then((stop) => {
+        stopNfc = stop;
+      });
     return () => {
       stopQr?.();
       stopNfc?.();
@@ -75,22 +82,22 @@ export default function VendorScanScreen() {
   }, [userId]);
 
   if (!permission) {
-    return (
-      <View style={screenStyles.root}>
-        <ActivityIndicator color={colors.accent} />
-      </View>
-    );
+    return <QuerySkeleton label="Se cere permisiunea camerei" />;
   }
 
   return (
     <ScrollView style={screenStyles.root}>
-      <Text style={screenStyles.title}>Validare</Text>
+      <Text accessibilityRole="header" style={screenStyles.title}>
+        Validare
+      </Text>
       <Text style={screenStyles.muted}>
         Scanează QR sau NFC cu codul de redemption.
       </Text>
-      {error ? <Text style={screenStyles.error}>{error}</Text> : null}
       {result ? (
-        <View style={screenStyles.card}>
+        <View
+          accessibilityLabel={`${result.status === "valid" ? "VALID" : "INVALID"} ${result.product_name ?? ""}`}
+          style={screenStyles.card}
+        >
           <Text style={screenStyles.body}>
             {result.status === "valid" ? "VALID" : "INVALID"}
           </Text>
@@ -104,11 +111,24 @@ export default function VendorScanScreen() {
       ) : null}
 
       {!permission.granted ? (
-        <Pressable onPress={() => void requestPermission()} style={screenStyles.button}>
+        <A11yButton
+          label="Permite camera"
+          hint="Activează camera pentru scanare QR"
+          onPress={() => void requestPermission()}
+          style={screenStyles.button}
+        >
           <Text style={screenStyles.buttonLabel}>Permite camera (QR)</Text>
-        </Pressable>
+        </A11yButton>
       ) : (
-        <View style={{ height: 220, marginVertical: 12, overflow: "hidden", borderRadius: 12 }}>
+        <View
+          accessibilityLabel="Previzualizare cameră QR"
+          style={{
+            height: 220,
+            marginVertical: 12,
+            overflow: "hidden",
+            borderRadius: 12,
+          }}
+        >
           <CameraView
             style={{ flex: 1 }}
             barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
@@ -124,29 +144,38 @@ export default function VendorScanScreen() {
         </View>
       )}
 
-      <Pressable
+      <A11yButton
+        label="Simulează NFC redemption"
+        hint="Validează un cod de test"
         onPress={() => vendorNfcScanner.simulate("sm:rdm:RDM-VISITOR-A-001")}
         style={screenStyles.buttonSecondary}
       >
-        <Text style={screenStyles.buttonLabel}>Simulează NFC redemption</Text>
-      </Pressable>
+        <Text style={screenStyles.buttonLabelOnSurface}>
+          Simulează NFC redemption
+        </Text>
+      </A11yButton>
 
       <TextInput
+        accessibilityLabel="Payload redemption"
+        accessibilityHint="Introdu sm:rdm:cod sau RDM-cod"
         autoCapitalize="none"
         onChangeText={setManual}
         placeholder="sm:rdm:RDM-… sau RDM-…"
-        placeholderTextColor="#9AA4B2"
+        placeholderTextColor="#C5CDD6"
         style={screenStyles.input}
         value={manual}
       />
-      <Pressable
+      <A11yButton
+        disabled={validate.isPending}
+        label="Validează payload"
+        hint="Verifică codul introdus"
         onPress={() => vendorQrScanner.simulate(manual)}
         style={screenStyles.button}
       >
         <Text style={screenStyles.buttonLabel}>
           {validate.isPending ? "Se validează…" : "Validează payload"}
         </Text>
-      </Pressable>
+      </A11yButton>
     </ScrollView>
   );
 }

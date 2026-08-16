@@ -1,20 +1,48 @@
 import {
+  LazyImage,
+  QueryGate,
   usePostgresChanges,
   useSession,
+  useToast,
 } from "@standmarket/supabase-client";
-import { colors } from "@standmarket/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, FlatList, Text, View } from "react-native";
-import { fetchActiveOffers, recordOfferViews } from "../../lib/queries";
+import { memo, useEffect, useRef } from "react";
+import { FlatList, Text, View } from "react-native";
+import {
+  fetchActiveOffers,
+  recordOfferViews,
+  type OfferListItem,
+} from "../../lib/queries";
 import { screenStyles } from "../../lib/styles";
+
+const OfferRow = memo(function OfferRow({ item }: { item: OfferListItem }) {
+  const discount =
+    item.discount_percent != null ? `${item.discount_percent}%` : "Offer";
+  return (
+    <View
+      accessibilityLabel={`${item.product_name}, ${discount}${item.stand_name ? `, ${item.stand_name}` : ""}`}
+      style={screenStyles.card}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <LazyImage label={`Imagine ${item.product_name}`} />
+        <View style={{ flex: 1 }}>
+          <Text style={screenStyles.body}>{item.product_name}</Text>
+          <Text style={screenStyles.muted}>
+            {discount}
+            {item.stand_name ? ` · ${item.stand_name}` : ""}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+});
 
 export default function HomeScreen() {
   const { session } = useSession();
   const queryClient = useQueryClient();
+  const showToast = useToast();
   const userId = session?.user.id ?? "";
   const seenViews = useRef(new Set<string>());
-  const [notice, setNotice] = useState<string | null>(null);
 
   const offers = useQuery({
     queryKey: ["offers", "active"],
@@ -40,7 +68,7 @@ export default function HomeScreen() {
       filter: userId ? `user_id=eq.${userId}` : undefined,
     },
     () => {
-      setNotice("Notificare nouă");
+      showToast("Notificare nouă", "success");
     },
   );
 
@@ -58,53 +86,22 @@ export default function HomeScreen() {
     void recordOfferViews(userId, fresh).catch(() => undefined);
   }, [offers.data, userId]);
 
-  useEffect(() => {
-    if (!notice) {
-      return;
-    }
-    const timer = setTimeout(() => setNotice(null), 4000);
-    return () => clearTimeout(timer);
-  }, [notice]);
-
-  if (offers.isLoading) {
-    return (
-      <View style={screenStyles.root}>
-        <ActivityIndicator color={colors.accent} />
-      </View>
-    );
-  }
-
-  if (offers.isError) {
-    return (
-      <View style={screenStyles.root}>
-        <Text style={screenStyles.error}>
-          {offers.error instanceof Error ? offers.error.message : "Could not load offers"}
-        </Text>
-      </View>
-    );
-  }
-
   return (
-    <View style={screenStyles.root}>
-      {notice ? (
-        <View style={screenStyles.card}>
-          <Text style={screenStyles.body}>{notice}</Text>
-        </View>
-      ) : null}
-      <FlatList
-        data={offers.data ?? []}
-        keyExtractor={(item) => item.id}
-        ListEmptyComponent={<Text style={screenStyles.muted}>No active offers</Text>}
-        renderItem={({ item }) => (
-          <View style={screenStyles.card}>
-            <Text style={screenStyles.body}>{item.product_name}</Text>
-            <Text style={screenStyles.muted}>
-              {item.discount_percent != null ? `${item.discount_percent}%` : "Offer"}
-              {item.stand_name ? ` · ${item.stand_name}` : ""}
-            </Text>
-          </View>
-        )}
-      />
-    </View>
+    <QueryGate
+      loading={offers.isLoading}
+      error={offers.error}
+      onRetry={() => void offers.refetch()}
+    >
+      <View style={screenStyles.root}>
+        <FlatList
+          data={offers.data ?? []}
+          keyExtractor={(item) => item.id}
+          ListEmptyComponent={
+            <Text style={screenStyles.muted}>No active offers</Text>
+          }
+          renderItem={({ item }) => <OfferRow item={item} />}
+        />
+      </View>
+    </QueryGate>
   );
 }

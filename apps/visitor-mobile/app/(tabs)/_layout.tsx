@@ -12,11 +12,26 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: colors.muted,
       }}
     >
-      <Tabs.Screen name="home" options={{ title: "Home" }} />
-      <Tabs.Screen name="scan" options={{ title: "Scan" }} />
-      <Tabs.Screen name="stands" options={{ title: "Standuri" }} />
-      <Tabs.Screen name="interests" options={{ title: "Interese" }} />
-      <Tabs.Screen name="profile" options={{ title: "Profil" }} />
+      <Tabs.Screen
+        name="home"
+        options={{ title: "Home", tabBarAccessibilityLabel: "Home" }}
+      />
+      <Tabs.Screen
+        name="scan"
+        options={{ title: "Scan", tabBarAccessibilityLabel: "Scan" }}
+      />
+      <Tabs.Screen
+        name="stands"
+        options={{ title: "Standuri", tabBarAccessibilityLabel: "Standuri" }}
+      />
+      <Tabs.Screen
+        name="interests"
+        options={{ title: "Interese", tabBarAccessibilityLabel: "Interese" }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{ title: "Profil", tabBarAccessibilityLabel: "Profil" }}
+      />
     </Tabs>
   );
 }
