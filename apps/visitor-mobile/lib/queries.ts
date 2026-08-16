@@ -7,6 +7,9 @@ export type OfferListItem = {
   stand_id: string;
   expo_id: string | null;
   stand_name: string | null;
+  hall: string | null;
+  zone: string | null;
+  category: string | null;
 };
 
 export type StandListItem = {
@@ -34,26 +37,14 @@ export async function fetchCurrentExpoId(): Promise<string> {
 export async function fetchActiveOffers(): Promise<OfferListItem[]> {
   const { data, error } = await getSupabaseClient()
     .from("offers")
-    .select("id, product_name, discount_percent, stand_id, stands(name, expo_id)")
+    .select(
+      "id, product_name, discount_percent, stand_id, stands(name, expo_id, hall, zone, category)",
+    )
     .eq("status", "active");
   if (error) {
     throw error;
   }
-  return (data ?? []).map((row) => {
-    const stand = row.stands as
-      | { name: string; expo_id: string }
-      | { name: string; expo_id: string }[]
-      | null;
-    const standRow = Array.isArray(stand) ? stand[0] : stand;
-    return {
-      id: row.id as string,
-      product_name: row.product_name as string,
-      discount_percent: (row.discount_percent as number | null) ?? null,
-      stand_id: row.stand_id as string,
-      expo_id: standRow?.expo_id ?? null,
-      stand_name: standRow?.name ?? null,
-    };
-  });
+  return (data ?? []).map(mapOffer);
 }
 
 export async function recordOfferViews(
@@ -155,8 +146,20 @@ function mapOffer(row: {
   stands: unknown;
 }): OfferListItem {
   const stand = row.stands as
-    | { name: string; expo_id: string; hall?: string; zone?: string }
-    | { name: string; expo_id: string; hall?: string; zone?: string }[]
+    | {
+        name: string;
+        expo_id: string;
+        hall?: string;
+        zone?: string;
+        category?: string;
+      }
+    | {
+        name: string;
+        expo_id: string;
+        hall?: string;
+        zone?: string;
+        category?: string;
+      }[]
     | null;
   const standRow = Array.isArray(stand) ? stand[0] : stand;
   return {
@@ -166,6 +169,9 @@ function mapOffer(row: {
     stand_id: row.stand_id as string,
     expo_id: standRow?.expo_id ?? null,
     stand_name: standRow?.name ?? null,
+    hall: standRow?.hall ?? null,
+    zone: standRow?.zone ?? null,
+    category: standRow?.category ?? null,
   };
 }
 

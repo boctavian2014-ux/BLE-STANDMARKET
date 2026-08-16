@@ -1,5 +1,6 @@
 import {
   A11yButton,
+  EmptyState,
   parseScanPayload,
   QuerySkeleton,
   useSession,
@@ -91,7 +92,13 @@ export default function VendorScanScreen() {
 
   return (
     <ScrollView style={screenStyles.root}>
-      <Text style={screenStyles.muted}>{t("validate.intro")}</Text>
+      {result ? null : (
+        <EmptyState
+          icon="🔎"
+          title={t("empty.validateTitle")}
+          message={t("empty.validateMessage")}
+        />
+      )}
       {result ? (
         <View
           accessibilityLabel={t("validate.resultA11y", {

@@ -70,10 +70,14 @@ export default function SignUpScreen() {
           {busy ? t("auth.creating") : t("auth.signUp")}
         </Text>
       </A11yButton>
-      <Link href="/(auth)/sign-in" style={{ marginTop: spacing.md }}>
-        <Text accessibilityRole="link" style={screenStyles.muted}>
-          {t("auth.alreadyHaveAccount")}
-        </Text>
+      <Link
+        href="/(auth)/sign-in"
+        accessibilityRole="link"
+        accessibilityLabel={t("auth.alreadyHaveAccount")}
+        accessibilityHint={t("auth.alreadyHaveAccountHint")}
+        style={{ marginTop: spacing.md }}
+      >
+        <Text style={screenStyles.muted}>{t("auth.alreadyHaveAccount")}</Text>
       </Link>
     </View>
   );

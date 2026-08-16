@@ -7,6 +7,9 @@ export const colors = {
   error: "#F97066",
   mutedAA: "#C5CDD6",
   buttonLabelOnAccent: "#0B0F14",
+  accentWarm: "#FF6A00",
+  badgeBackground: "#FF6A00",
+  badgeText: "#0B0F14",
 } as const;
 
 export const radius = {

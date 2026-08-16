@@ -1,5 +1,6 @@
 import {
   A11yButton,
+  EmptyState,
   isBeaconInProximity,
   matchZonalBeacon,
   parseScanPayload,
@@ -194,7 +195,15 @@ export default function ScanScreen() {
       onRetry={() => void beacons.refetch()}
     >
       <ScrollView style={screenStyles.root}>
-        <Text style={screenStyles.muted}>{t(statusKey, statusVars)}</Text>
+        {offers.length === 0 ? (
+          <EmptyState
+            icon="📡"
+            title={t("empty.scanTitle")}
+            message={t(statusKey, statusVars)}
+          />
+        ) : (
+          <Text style={screenStyles.muted}>{t(statusKey, statusVars)}</Text>
+        )}
         {code ? (
           <View
             accessibilityLabel={t("scan.redemptionA11y", { code })}

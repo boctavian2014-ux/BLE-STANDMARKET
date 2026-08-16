@@ -249,7 +249,7 @@ export function HardeningProvider({
 
   return (
     <HardeningContext.Provider value={value}>
-      <View style={{ flex: 1, paddingTop: online ? 0 : 40 }}>{children}</View>
+      <View style={{ flex: 1 }}>{children}</View>
       {!online ? (
         <View
           accessibilityRole="alert"
@@ -432,23 +432,33 @@ export const A11yButton = memo(function A11yButton({
 export const LazyImage = memo(function LazyImage({
   uri,
   label,
+  size = "sm",
+  initial,
 }: {
   uri?: string | null;
   label: string;
+  size?: "sm" | "lg";
+  initial?: string;
 }) {
   const [loaded, setLoaded] = useState(!uri);
   const onLoad = useCallback(() => setLoaded(true), []);
+  const large = size === "lg";
+  const box = large
+    ? { width: "100%" as const, height: 120, marginRight: 0 }
+    : { width: 40, height: 40, marginRight: 12 };
   return (
     <View
       accessibilityRole="image"
       accessibilityLabel={label}
       style={{
-        width: 40,
-        height: 40,
-        borderRadius: radius.sm,
+        ...box,
+        borderRadius: large ? radius.md : radius.sm,
         backgroundColor: colors.surface,
         overflow: "hidden",
-        marginRight: 12,
+        borderWidth: uri ? 0 : 1,
+        borderColor: colors.muted,
+        alignItems: "center",
+        justifyContent: "center",
       }}
     >
       {uri ? (
@@ -456,8 +466,23 @@ export const LazyImage = memo(function LazyImage({
           accessibilityIgnoresInvertColors
           onLoad={onLoad}
           source={{ uri }}
-          style={{ width: 40, height: 40, opacity: loaded ? 1 : 0.3 }}
+          style={{
+            width: large ? "100%" : 40,
+            height: large ? 120 : 40,
+            opacity: loaded ? 1 : 0.3,
+          }}
         />
+      ) : initial ? (
+        <Text
+          accessibilityElementsHidden
+          style={{
+            color: colors.mutedAA,
+            fontSize: large ? 36 : 16,
+            fontWeight: "700",
+          }}
+        >
+          {initial}
+        </Text>
       ) : null}
     </View>
   );

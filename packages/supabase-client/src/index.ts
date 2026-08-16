@@ -51,6 +51,12 @@ export {
   useToast,
 } from "./hardening-ui";
 export {
+  composeOfferCardLabel,
+  isHotDiscount,
+  placeholderInitial,
+} from "./marketplace";
+export { EmptyState, OfferCard, SectionHeader } from "./marketplace-ui";
+export {
   OFFLINE_QUEUE_KEY,
   createMemoryStore,
   enqueueMutation,

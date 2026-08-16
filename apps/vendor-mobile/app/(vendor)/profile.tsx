@@ -5,6 +5,7 @@ import {
   QueryGate,
   useProfile,
   useSession,
+  useToast,
 } from "@standmarket/supabase-client";
 import { useTranslation } from "@standmarket/ui";
 import { useQuery } from "@tanstack/react-query";
@@ -15,10 +16,11 @@ import { screenStyles } from "../../lib/styles";
 
 export default function ProfileScreen() {
   const { session, signOut } = useSession();
-  const { profile, isLoading, error } = useProfile();
+  const { profile, isLoading, error, refetch } = useProfile();
   const { t, language, setLanguage } = useTranslation();
+  const showToast = useToast();
   const userId = session?.user.id ?? "";
-  const [crash, setCrash] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const membership = useQuery({
     queryKey: ["membership", userId],
     queryFn: () => fetchActiveMembership(getSupabaseClient(), userId),
@@ -31,8 +33,14 @@ export default function ProfileScreen() {
     enabled: Boolean(standId),
   });
 
-  if (crash) {
-    throw new Error("Simulated crash");
+  async function onLogOut() {
+    setLoggingOut(true);
+    try {
+      await signOut();
+      showToast(t("profile.loggedOut"), "success");
+    } finally {
+      setLoggingOut(false);
+    }
   }
 
   return (
@@ -40,6 +48,7 @@ export default function ProfileScreen() {
       loading={isLoading || membership.isLoading || stand.isLoading}
       error={error ?? membership.error ?? stand.error}
       onRetry={() => {
+        void refetch();
         void membership.refetch();
         void stand.refetch();
       }}
@@ -103,21 +112,14 @@ export default function ProfileScreen() {
           </View>
         </View>
         <A11yButton
+          disabled={loggingOut}
           label={t("profile.logOut")}
           hint={t("profile.logOutHintVendor")}
-          onPress={() => void signOut()}
+          onPress={() => void onLogOut()}
           style={screenStyles.button}
         >
-          <Text style={screenStyles.buttonLabel}>{t("profile.logOut")}</Text>
-        </A11yButton>
-        <A11yButton
-          label={t("profile.simulateCrash")}
-          hint={t("profile.simulateCrashHint")}
-          onPress={() => setCrash(true)}
-          style={screenStyles.buttonSecondary}
-        >
-          <Text style={screenStyles.buttonLabelOnSurface}>
-            {t("profile.simulateCrash")}
+          <Text style={screenStyles.buttonLabel}>
+            {loggingOut ? t("profile.loggingOut") : t("profile.logOut")}
           </Text>
         </A11yButton>
       </View>
