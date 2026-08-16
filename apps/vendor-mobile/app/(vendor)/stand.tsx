@@ -4,6 +4,7 @@ import {
   QueryGate,
   useSession,
 } from "@standmarket/supabase-client";
+import { useTranslation } from "@standmarket/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { Text, View } from "react-native";
@@ -16,6 +17,7 @@ import { screenStyles } from "../../lib/styles";
 
 export default function StandScreen() {
   const { session } = useSession();
+  const { t } = useTranslation();
   const userId = session?.user.id ?? "";
   const recordedStand = useRef<string | null>(null);
   const membership = useQuery({
@@ -62,33 +64,33 @@ export default function StandScreen() {
     >
       <View style={screenStyles.root}>
         <View style={screenStyles.card}>
-          <Text style={screenStyles.muted}>Nume</Text>
+          <Text style={screenStyles.muted}>{t("stand.name")}</Text>
           <Text style={screenStyles.body}>{stand.data?.name}</Text>
         </View>
         <View style={screenStyles.card}>
-          <Text style={screenStyles.muted}>Hală</Text>
+          <Text style={screenStyles.muted}>{t("stand.hall")}</Text>
           <Text style={screenStyles.body}>{stand.data?.hall}</Text>
         </View>
         <View style={screenStyles.card}>
-          <Text style={screenStyles.muted}>Zonă</Text>
+          <Text style={screenStyles.muted}>{t("stand.zone")}</Text>
           <Text style={screenStyles.body}>{stand.data?.zone}</Text>
         </View>
         <View style={screenStyles.card}>
-          <Text style={screenStyles.muted}>Expo</Text>
+          <Text style={screenStyles.muted}>{t("stand.expo")}</Text>
           <Text style={screenStyles.body}>{stand.data?.expo_name ?? "—"}</Text>
         </View>
         <View style={screenStyles.card}>
-          <Text style={screenStyles.muted}>Oferte active</Text>
+          <Text style={screenStyles.muted}>{t("stand.activeOffers")}</Text>
           <Text style={screenStyles.body}>
             {stats.data?.activeOffers ?? "—"}
           </Text>
         </View>
         <View style={screenStyles.card}>
-          <Text style={screenStyles.muted}>Views</Text>
+          <Text style={screenStyles.muted}>{t("stand.views")}</Text>
           <Text style={screenStyles.body}>{stats.data?.views ?? "—"}</Text>
         </View>
         <View style={screenStyles.card}>
-          <Text style={screenStyles.muted}>Redemptions</Text>
+          <Text style={screenStyles.muted}>{t("stand.redemptions")}</Text>
           <Text style={screenStyles.body}>{stats.data?.redemptions ?? "—"}</Text>
         </View>
       </View>

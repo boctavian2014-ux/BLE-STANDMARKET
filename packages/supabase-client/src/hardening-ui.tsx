@@ -1,4 +1,12 @@
 import {
+  colors,
+  mapVisibleError,
+  radius,
+  spacing,
+  typography,
+  useTranslation,
+} from "../../ui/src/index";
+import {
   Component,
   createContext,
   memo,
@@ -17,7 +25,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
-import { errorFallbackCopy, pingWithTimeout } from "./hardening";
+import { pingWithTimeout } from "./hardening";
 import {
   enqueueMutation,
   flushOfflineQueue,
@@ -58,6 +66,7 @@ export function useOnline(): boolean {
 
 export function useQueuedAction() {
   const { online, enqueue, showToast } = useHardening();
+  const { t } = useTranslation();
   return useCallback(
     async (
       name: string,
@@ -73,14 +82,77 @@ export function useQueuedAction() {
         await run();
         showToast(successMessage, "success");
       } catch (caught) {
-        showToast(
-          caught instanceof Error ? caught.message : "Eroare",
-          "error",
-        );
+        showToast(mapVisibleError(caught, t), "error");
         throw caught;
       }
     },
-    [enqueue, online, showToast],
+    [enqueue, online, showToast, t],
+  );
+}
+
+function ErrorFallback({
+  error,
+  onRetry,
+}: {
+  error: Error;
+  onRetry: () => void;
+}) {
+  const { t } = useTranslation();
+  const title = t("errorBoundary.title");
+  return (
+    <View
+      accessibilityRole="alert"
+      accessibilityLabel={title}
+      style={{
+        flex: 1,
+        backgroundColor: colors.background,
+        padding: spacing.lg,
+        justifyContent: "center",
+      }}
+    >
+      <Text
+        accessibilityRole="header"
+        style={{
+          color: colors.text,
+          fontSize: typography.title,
+          fontWeight: "600",
+          marginBottom: spacing.md,
+        }}
+      >
+        {title}
+      </Text>
+      <Text
+        style={{
+          color: colors.mutedAA,
+          fontSize: typography.subtitle,
+          marginBottom: spacing.lg,
+        }}
+      >
+        {mapVisibleError(error, t)}
+      </Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t("errorBoundary.retry")}
+        accessibilityHint={t("errorBoundary.retryHint")}
+        onPress={onRetry}
+        style={{
+          backgroundColor: colors.accent,
+          paddingVertical: 12,
+          borderRadius: radius.md,
+          alignItems: "center",
+        }}
+      >
+        <Text
+          style={{
+            color: colors.buttonLabelOnAccent,
+            fontSize: typography.subtitle,
+            fontWeight: "600",
+          }}
+        >
+          {t("errorBoundary.retry")}
+        </Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -105,45 +177,7 @@ export class ErrorBoundary extends Component<
     if (!this.state.error) {
       return this.props.children;
     }
-    const copy = errorFallbackCopy(this.state.error);
-    return (
-      <View
-        accessibilityRole="alert"
-        accessibilityLabel={copy.title}
-        style={{
-          flex: 1,
-          backgroundColor: "#0B0F14",
-          padding: 24,
-          justifyContent: "center",
-        }}
-      >
-        <Text
-          accessibilityRole="header"
-          style={{ color: "#F4F6F8", fontSize: 28, fontWeight: "600", marginBottom: 16 }}
-        >
-          {copy.title}
-        </Text>
-        <Text style={{ color: "#C5CDD6", fontSize: 16, marginBottom: 24 }}>
-          {copy.body}
-        </Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={copy.retryLabel}
-          accessibilityHint="Reîncarcă ecranul după eroare"
-          onPress={this.retry}
-          style={{
-            backgroundColor: "#3D8BFF",
-            paddingVertical: 12,
-            borderRadius: 10,
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ color: "#0B0F14", fontSize: 16, fontWeight: "600" }}>
-            {copy.retryLabel}
-          </Text>
-        </Pressable>
-      </View>
-    );
+    return <ErrorFallback error={this.state.error} onRetry={this.retry} />;
   }
 }
 
@@ -158,6 +192,7 @@ export function HardeningProvider({
   store: KeyValueStore;
   handlers: Record<string, (payload: unknown) => Promise<void>>;
 }) {
+  const { t } = useTranslation();
   const [online, setOnline] = useState(true);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
@@ -172,9 +207,9 @@ export function HardeningProvider({
   const enqueue = useCallback(
     async (name: string, payload: unknown) => {
       await enqueueMutation(store, { name, payload });
-      showToast("Salvat în coadă. Se trimite la reconectare.", "success");
+      showToast(t("offline.queued"), "success");
     },
-    [showToast, store],
+    [showToast, store, t],
   );
 
   useEffect(() => {
@@ -199,10 +234,10 @@ export function HardeningProvider({
     }
     void flushOfflineQueue(store, handlers).then((result) => {
       if (result.flushed > 0) {
-        showToast("Coada offline a fost trimisă.", "success");
+        showToast(t("offline.flushed"), "success");
       }
     });
-  }, [handlers, online, showToast, store]);
+  }, [handlers, online, showToast, store, t]);
 
   const value = useMemo(
     () => ({ online, showToast, enqueue }),
@@ -215,22 +250,28 @@ export function HardeningProvider({
       {!online ? (
         <View
           accessibilityRole="alert"
-          accessibilityLabel="Fără conexiune"
-          accessibilityHint="Acțiunile vor fi puse în coadă până la reconectare"
+          accessibilityLabel={t("offline.label")}
+          accessibilityHint={t("offline.hint")}
           style={{
             position: "absolute",
             top: 0,
             left: 0,
             right: 0,
             zIndex: 40,
-            backgroundColor: "#F97066",
+            backgroundColor: colors.error,
             paddingTop: 44,
             paddingBottom: 10,
-            paddingHorizontal: 16,
+            paddingHorizontal: spacing.md,
           }}
         >
-          <Text style={{ color: "#0B0F14", fontSize: 14, fontWeight: "600" }}>
-            Ești offline. Mutations merg în coadă.
+          <Text
+            style={{
+              color: colors.buttonLabelOnAccent,
+              fontSize: typography.body,
+              fontWeight: "600",
+            }}
+          >
+            {t("offline.banner")}
           </Text>
         </View>
       ) : null}
@@ -238,8 +279,8 @@ export function HardeningProvider({
         pointerEvents="none"
         style={{
           position: "absolute",
-          left: 16,
-          right: 16,
+          left: spacing.md,
+          right: spacing.md,
           bottom: 88,
           zIndex: 50,
         }}
@@ -250,13 +291,20 @@ export function HardeningProvider({
             accessibilityRole="alert"
             accessibilityLabel={toast.message}
             style={{
-              backgroundColor: toast.variant === "error" ? "#F97066" : "#3D8BFF",
+              backgroundColor:
+                toast.variant === "error" ? colors.error : colors.accent,
               padding: 12,
-              borderRadius: 10,
-              marginTop: 8,
+              borderRadius: radius.md,
+              marginTop: spacing.sm,
             }}
           >
-            <Text style={{ color: "#0B0F14", fontSize: 14, fontWeight: "600" }}>
+            <Text
+              style={{
+                color: colors.buttonLabelOnAccent,
+                fontSize: typography.body,
+                fontWeight: "600",
+              }}
+            >
               {toast.message}
             </Text>
           </View>
@@ -267,24 +315,26 @@ export function HardeningProvider({
 }
 
 export const QuerySkeleton = memo(function QuerySkeleton({
-  label = "Se încarcă",
+  label,
 }: {
   label?: string;
 }) {
+  const { t } = useTranslation();
+  const resolved = label ?? t("query.loading");
   return (
     <View
       accessibilityRole="progressbar"
-      accessibilityLabel={label}
-      style={{ flex: 1, backgroundColor: "#0B0F14", padding: 24 }}
+      accessibilityLabel={resolved}
+      style={{ flex: 1, backgroundColor: colors.background, padding: spacing.lg }}
     >
       {[0, 1, 2].map((slot) => (
         <View
           key={slot}
           style={{
             height: 72,
-            borderRadius: 12,
-            backgroundColor: "#151B23",
-            marginBottom: 8,
+            borderRadius: radius.lg,
+            backgroundColor: colors.surface,
+            marginBottom: spacing.sm,
           }}
         />
       ))}
@@ -303,36 +353,40 @@ export function QueryGate({
   onRetry?: () => void;
   children: ReactNode;
 }) {
+  const { t } = useTranslation();
   if (loading) {
     return <QuerySkeleton />;
   }
   if (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : typeof error === "string"
-          ? error
-          : "Could not load data";
     return (
-      <View style={{ flex: 1, backgroundColor: "#0B0F14", padding: 24 }}>
-        <Text accessibilityRole="alert" style={{ color: "#F97066", fontSize: 14 }}>
-          {message}
+      <View style={{ flex: 1, backgroundColor: colors.background, padding: spacing.lg }}>
+        <Text
+          accessibilityRole="alert"
+          style={{ color: colors.error, fontSize: typography.body }}
+        >
+          {mapVisibleError(error, t)}
         </Text>
         {onRetry ? (
           <A11yButton
-            label="Reîncearcă încărcarea"
-            hint="Reîncearcă interogarea"
+            label={t("query.retryLoad")}
+            hint={t("query.retryHint")}
             onPress={onRetry}
             style={{
-              marginTop: 16,
-              backgroundColor: "#3D8BFF",
+              marginTop: spacing.md,
+              backgroundColor: colors.accent,
               paddingVertical: 12,
-              borderRadius: 10,
+              borderRadius: radius.md,
               alignItems: "center",
             }}
           >
-            <Text style={{ color: "#0B0F14", fontSize: 16, fontWeight: "600" }}>
-              Reîncearcă
+            <Text
+              style={{
+                color: colors.buttonLabelOnAccent,
+                fontSize: typography.subtitle,
+                fontWeight: "600",
+              }}
+            >
+              {t("query.retry")}
             </Text>
           </A11yButton>
         ) : null}
@@ -388,8 +442,8 @@ export const LazyImage = memo(function LazyImage({
       style={{
         width: 40,
         height: 40,
-        borderRadius: 8,
-        backgroundColor: "#151B23",
+        borderRadius: radius.sm,
+        backgroundColor: colors.surface,
         overflow: "hidden",
         marginRight: 12,
       }}
