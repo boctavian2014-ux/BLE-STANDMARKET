@@ -1,4 +1,8 @@
-import { getSupabaseClient } from "@standmarket/supabase-client";
+import {
+  deleteOfferImage,
+  getSupabaseClient,
+  offerImagePath,
+} from "@standmarket/supabase-client";
 
 export type OfferStatus = "draft" | "active" | "paused";
 
@@ -9,6 +13,7 @@ export type VendorOffer = {
   discount_percent: number | null;
   status: OfferStatus;
   created_by: string;
+  image_url: string | null;
 };
 
 export type VendorStand = {
@@ -17,6 +22,7 @@ export type VendorStand = {
   hall: string;
   zone: string;
   category: string | null;
+  expo_id: string;
   expo_name: string | null;
 };
 
@@ -44,7 +50,7 @@ function parseDiscount(value: string): number | null {
 export async function fetchVendorOffers(standId: string): Promise<VendorOffer[]> {
   const { data, error } = await getSupabaseClient()
     .from("offers")
-    .select("id, product_name, description, discount_percent, status, created_by")
+    .select("id, product_name, description, discount_percent, status, created_by, image_url")
     .eq("stand_id", standId)
     .order("created_at", { ascending: false });
   if (error) {
@@ -56,7 +62,7 @@ export async function fetchVendorOffers(standId: string): Promise<VendorOffer[]>
 export async function fetchVendorStand(standId: string): Promise<VendorStand> {
   const { data, error } = await getSupabaseClient()
     .from("stands")
-    .select("id, name, hall, zone, category, expos(name)")
+    .select("id, name, hall, zone, category, expo_id, expos(name)")
     .eq("id", standId)
     .maybeSingle();
   if (error) {
@@ -73,6 +79,7 @@ export async function fetchVendorStand(standId: string): Promise<VendorStand> {
     hall: data.hall as string,
     zone: data.zone as string,
     category: (data.category as string | null) ?? null,
+    expo_id: data.expo_id as string,
     expo_name: expoName ?? null,
   };
 }
@@ -82,16 +89,60 @@ export async function createVendorOffer(
   userId: string,
   draft: OfferDraft,
   category: string | null,
+): Promise<string> {
+  const { data, error } = await getSupabaseClient()
+    .from("offers")
+    .insert({
+      stand_id: standId,
+      created_by: userId,
+      product_name: draft.product_name.trim(),
+      description: draft.description.trim() || null,
+      category: category?.trim() || DEFAULT_CATEGORY,
+      discount_percent: parseDiscount(draft.discount_percent),
+      status: draft.status,
+    })
+    .select("id")
+    .single();
+  if (error) {
+    throw error;
+  }
+  if (!data?.id) {
+    throw new Error("Could not update offer");
+  }
+  return data.id as string;
+}
+
+export async function setVendorOfferImage(
+  offerId: string,
+  imageUrl: string | null,
 ): Promise<void> {
-  const { error } = await getSupabaseClient().from("offers").insert({
-    stand_id: standId,
-    created_by: userId,
-    product_name: draft.product_name.trim(),
-    description: draft.description.trim() || null,
-    category: category?.trim() || DEFAULT_CATEGORY,
-    discount_percent: parseDiscount(draft.discount_percent),
-    status: draft.status,
-  });
+  const { data, error } = await getSupabaseClient()
+    .from("offers")
+    .update({ image_url: imageUrl })
+    .eq("id", offerId)
+    .select("id");
+  if (error) {
+    throw error;
+  }
+  if (!data?.length) {
+    throw new Error("Could not update offer");
+  }
+}
+
+export async function deleteVendorOffer(
+  offer: VendorOffer,
+  expoId: string,
+  standId: string,
+): Promise<void> {
+  try {
+    await deleteOfferImage(offerImagePath(expoId, standId, offer.id));
+  } catch {
+    // Best effort: missing objects must not block offer deletion.
+  }
+  const { error } = await getSupabaseClient()
+    .from("offers")
+    .delete()
+    .eq("id", offer.id);
   if (error) {
     throw error;
   }

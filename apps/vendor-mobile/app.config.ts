@@ -45,6 +45,15 @@ export default {
           cameraPermission: "Allow StandMarket Vendor to scan redemption QR codes.",
         },
       ],
+      [
+        "expo-image-picker",
+        {
+          photosPermission:
+            "StandMarket Vendor needs photo library access to add an offer image.",
+          cameraPermission:
+            "StandMarket Vendor needs camera access to add an offer image.",
+        },
+      ],
     ],
   },
 };

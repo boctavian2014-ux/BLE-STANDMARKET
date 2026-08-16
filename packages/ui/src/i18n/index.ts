@@ -34,6 +34,7 @@ const ERROR_MAP: Array<{ match: string; key: string }> = [
   { match: "No running expo", key: "errors.noExpo" },
   { match: "Stand not found", key: "errors.standNotFound" },
   { match: "Could not update offer", key: "errors.updateFailed" },
+  { match: "OFFER_IMAGE_TOO_LARGE", key: "offers.photoTooBig" },
   { match: "Could not load data", key: "errors.loadFailed" },
   { match: "Scan invalid", key: "errors.invalidScan" },
   { match: "QR/NFC invalid", key: "errors.invalidScan" },
