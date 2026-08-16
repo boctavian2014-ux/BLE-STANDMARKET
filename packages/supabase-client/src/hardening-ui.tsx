@@ -48,6 +48,8 @@ type HardeningValue = {
 
 const HardeningContext = createContext<HardeningValue | null>(null);
 
+function noopToast(_message: string, _variant?: ToastVariant) {}
+
 export function useHardening(): HardeningValue {
   const value = useContext(HardeningContext);
   if (!value) {
@@ -57,7 +59,8 @@ export function useHardening(): HardeningValue {
 }
 
 export function useToast(): HardeningValue["showToast"] {
-  return useHardening().showToast;
+  const value = useContext(HardeningContext);
+  return value?.showToast ?? noopToast;
 }
 
 export function useOnline(): boolean {
