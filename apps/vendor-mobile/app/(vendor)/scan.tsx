@@ -5,6 +5,7 @@ import {
   useSession,
   useToast,
 } from "@standmarket/supabase-client";
+import { colors, mapVisibleError, radius, useTranslation } from "@standmarket/ui";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { ScrollView, Text, TextInput, View } from "react-native";
@@ -24,6 +25,7 @@ const { CameraView, useCameraPermissions } = loadCamera();
 export default function VendorScanScreen() {
   const { session } = useSession();
   const showToast = useToast();
+  const { t } = useTranslation();
   const userId = session?.user.id ?? "";
   const [permission, requestPermission] = useCameraPermissions();
   const [manual, setManual] = useState("");
@@ -35,23 +37,22 @@ export default function VendorScanScreen() {
       const parsed = parseScanPayload(raw);
       const code = parsed?.type === "redemption" ? parsed.code : raw.trim();
       if (!code || parsed?.type === "offer") {
-        throw new Error("Scan invalid. Aștept sm:rdm:<cod>.");
+        throw new Error("Scan invalid");
       }
       return validateRedemptionCode(code);
     },
     onSuccess: (validation) => {
       setResult(validation);
       showToast(
-        validation.status === "valid" ? "Redemption valid" : "Redemption invalid",
+        validation.status === "valid"
+          ? t("validate.validToast")
+          : t("validate.invalidToast"),
         validation.status === "valid" ? "success" : "error",
       );
     },
     onError: (caught) => {
       setResult(null);
-      showToast(
-        caught instanceof Error ? caught.message : "Validare eșuată",
-        "error",
-      );
+      showToast(mapVisibleError(caught, t), "error");
     },
   });
 
@@ -82,25 +83,24 @@ export default function VendorScanScreen() {
   }, [userId]);
 
   if (!permission) {
-    return <QuerySkeleton label="Se cere permisiunea camerei" />;
+    return <QuerySkeleton label={t("query.cameraPermission")} />;
   }
+
+  const statusLabel =
+    result?.status === "valid" ? t("validate.valid") : t("validate.invalid");
 
   return (
     <ScrollView style={screenStyles.root}>
-      <Text accessibilityRole="header" style={screenStyles.title}>
-        Validare
-      </Text>
-      <Text style={screenStyles.muted}>
-        Scanează QR sau NFC cu codul de redemption.
-      </Text>
+      <Text style={screenStyles.muted}>{t("validate.intro")}</Text>
       {result ? (
         <View
-          accessibilityLabel={`${result.status === "valid" ? "VALID" : "INVALID"} ${result.product_name ?? ""}`}
+          accessibilityLabel={t("validate.resultA11y", {
+            status: statusLabel,
+            name: result.product_name ?? "",
+          })}
           style={screenStyles.card}
         >
-          <Text style={screenStyles.body}>
-            {result.status === "valid" ? "VALID" : "INVALID"}
-          </Text>
+          <Text style={screenStyles.body}>{statusLabel}</Text>
           {result.product_name ? (
             <Text style={screenStyles.muted}>{result.product_name}</Text>
           ) : null}
@@ -112,21 +112,21 @@ export default function VendorScanScreen() {
 
       {!permission.granted ? (
         <A11yButton
-          label="Permite camera"
-          hint="Activează camera pentru scanare QR"
+          label={t("scan.allowCameraLabel")}
+          hint={t("scan.allowCameraHint")}
           onPress={() => void requestPermission()}
           style={screenStyles.button}
         >
-          <Text style={screenStyles.buttonLabel}>Permite camera (QR)</Text>
+          <Text style={screenStyles.buttonLabel}>{t("scan.allowCamera")}</Text>
         </A11yButton>
       ) : (
         <View
-          accessibilityLabel="Previzualizare cameră QR"
+          accessibilityLabel={t("scan.cameraPreview")}
           style={{
             height: 220,
             marginVertical: 12,
             overflow: "hidden",
-            borderRadius: 12,
+            borderRadius: radius.lg,
           }}
         >
           <CameraView
@@ -145,35 +145,35 @@ export default function VendorScanScreen() {
       )}
 
       <A11yButton
-        label="Simulează NFC redemption"
-        hint="Validează un cod de test"
+        label={t("validate.simulateNfc")}
+        hint={t("validate.simulateNfcHint")}
         onPress={() => vendorNfcScanner.simulate("sm:rdm:RDM-VISITOR-A-001")}
         style={screenStyles.buttonSecondary}
       >
         <Text style={screenStyles.buttonLabelOnSurface}>
-          Simulează NFC redemption
+          {t("validate.simulateNfc")}
         </Text>
       </A11yButton>
 
       <TextInput
-        accessibilityLabel="Payload redemption"
-        accessibilityHint="Introdu sm:rdm:cod sau RDM-cod"
+        accessibilityLabel={t("validate.payloadLabel")}
+        accessibilityHint={t("validate.payloadHint")}
         autoCapitalize="none"
         onChangeText={setManual}
-        placeholder="sm:rdm:RDM-… sau RDM-…"
-        placeholderTextColor="#C5CDD6"
+        placeholder={t("validate.payloadPlaceholder")}
+        placeholderTextColor={colors.mutedAA}
         style={screenStyles.input}
         value={manual}
       />
       <A11yButton
         disabled={validate.isPending}
-        label="Validează payload"
-        hint="Verifică codul introdus"
+        label={t("validate.action")}
+        hint={t("validate.actionHint")}
         onPress={() => vendorQrScanner.simulate(manual)}
         style={screenStyles.button}
       >
         <Text style={screenStyles.buttonLabel}>
-          {validate.isPending ? "Se validează…" : "Validează payload"}
+          {validate.isPending ? t("validate.validating") : t("validate.action")}
         </Text>
       </A11yButton>
     </ScrollView>

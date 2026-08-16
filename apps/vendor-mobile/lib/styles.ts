@@ -1,5 +1,5 @@
 import { StyleSheet } from "react-native";
-import { colors, spacing, typography } from "@standmarket/ui";
+import { colors, radius, spacing, typography } from "@standmarket/ui";
 
 export const screenStyles = StyleSheet.create({
   root: {
@@ -18,24 +18,24 @@ export const screenStyles = StyleSheet.create({
     fontSize: typography.body,
   },
   muted: {
-    color: "#C5CDD6",
+    color: colors.mutedAA,
     fontSize: typography.subtitle,
   },
   error: {
-    color: "#F97066",
+    color: colors.error,
     fontSize: typography.body,
   },
   card: {
     backgroundColor: colors.surface,
     padding: spacing.md,
-    borderRadius: 12,
+    borderRadius: radius.lg,
     marginBottom: spacing.sm,
   },
   button: {
     backgroundColor: colors.accent,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
-    borderRadius: 10,
+    borderRadius: radius.md,
     alignItems: "center",
     marginTop: spacing.sm,
   },
@@ -43,12 +43,12 @@ export const screenStyles = StyleSheet.create({
     backgroundColor: colors.surface,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
-    borderRadius: 10,
+    borderRadius: radius.md,
     alignItems: "center",
     marginTop: spacing.sm,
   },
   buttonLabel: {
-    color: "#0B0F14",
+    color: colors.buttonLabelOnAccent,
     fontSize: typography.subtitle,
     fontWeight: "600",
   },
@@ -60,7 +60,7 @@ export const screenStyles = StyleSheet.create({
   input: {
     backgroundColor: colors.surface,
     color: colors.text,
-    borderRadius: 10,
+    borderRadius: radius.md,
     padding: spacing.sm,
     marginBottom: spacing.sm,
   },
@@ -73,7 +73,7 @@ export const screenStyles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.surface,
     paddingVertical: spacing.sm,
-    borderRadius: 10,
+    borderRadius: radius.md,
     alignItems: "center",
   },
   chipActive: {

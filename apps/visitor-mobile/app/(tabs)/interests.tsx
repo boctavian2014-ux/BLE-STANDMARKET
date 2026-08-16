@@ -4,7 +4,7 @@ import {
   useQueuedAction,
   useSession,
 } from "@standmarket/supabase-client";
-import { colors } from "@standmarket/ui";
+import { colors, useTranslation } from "@standmarket/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { Text, View } from "react-native";
@@ -17,8 +17,16 @@ import {
 } from "../../lib/queries";
 import { screenStyles } from "../../lib/styles";
 
+const CATEGORY_KEYS = {
+  Electronics: "interests.electronics",
+  Fashion: "interests.fashion",
+  Home: "interests.home",
+  Food: "interests.food",
+} as const;
+
 export default function InterestsScreen() {
   const { session } = useSession();
+  const { t } = useTranslation();
   const userId = session?.user.id;
   const queryClient = useQueryClient();
   const runQueued = useQueuedAction();
@@ -69,10 +77,10 @@ export default function InterestsScreen() {
         async () => {
           await toggle.mutateAsync(category);
         },
-        isOn ? "Interes scos" : "Interes salvat",
+        isOn ? t("interests.removed") : t("interests.saved"),
       );
     },
-    [expo.data, runQueued, toggle, userId],
+    [expo.data, runQueued, t, toggle, userId],
   );
 
   return (
@@ -85,25 +93,24 @@ export default function InterestsScreen() {
       }}
     >
       <View style={screenStyles.root}>
-        <Text style={screenStyles.muted}>
-          Static categories (placeholder; no categories table).
-        </Text>
+        <Text style={screenStyles.muted}>{t("interests.placeholder")}</Text>
         {INTEREST_CATEGORIES.map((category) => {
           const isOn = selected.data?.includes(category) ?? false;
+          const label = t(CATEGORY_KEYS[category]);
           return (
             <A11yButton
               key={category}
-              label={category}
-              hint={isOn ? "Scoate interesul" : "Adaugă interesul"}
+              label={label}
+              hint={isOn ? t("interests.removeHint") : t("interests.addHint")}
               onPress={() => onToggle(category, isOn)}
               style={[
                 screenStyles.card,
                 isOn ? { borderWidth: 1, borderColor: colors.accent } : null,
               ]}
             >
-              <Text style={screenStyles.body}>{category}</Text>
+              <Text style={screenStyles.body}>{label}</Text>
               <Text style={screenStyles.muted}>
-                {isOn ? "Selected" : "Tap to select"}
+                {isOn ? t("interests.selected") : t("interests.tapToSelect")}
               </Text>
             </A11yButton>
           );

@@ -4,6 +4,7 @@ import {
   getSupabaseClient,
   useToast,
 } from "@standmarket/supabase-client";
+import { colors, mapVisibleError, spacing, useTranslation } from "@standmarket/ui";
 import { Link } from "expo-router";
 import { useState } from "react";
 import { Text, TextInput, View } from "react-native";
@@ -11,6 +12,7 @@ import { screenStyles } from "../../lib/styles";
 
 export default function SignInScreen() {
   const showToast = useToast();
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -22,12 +24,9 @@ export default function SignInScreen() {
         email.trim(),
         password,
       );
-      showToast("Autentificat", "success");
+      showToast(t("auth.authenticated"), "success");
     } catch (caught) {
-      showToast(
-        caught instanceof Error ? caught.message : "Sign in failed",
-        "error",
-      );
+      showToast(mapVisibleError(caught, t), "error");
     } finally {
       setBusy(false);
     }
@@ -36,44 +35,44 @@ export default function SignInScreen() {
   return (
     <View style={screenStyles.root}>
       <Text accessibilityRole="header" style={screenStyles.title}>
-        StandMarket Vendor
+        {t("auth.appNameVendor")}
       </Text>
-      <Text style={screenStyles.muted}>Sign in</Text>
+      <Text style={screenStyles.muted}>{t("auth.vendorSubtitle")}</Text>
       <TextInput
-        accessibilityLabel="Email"
-        accessibilityHint="Adresa de email a vendorului"
+        accessibilityLabel={t("auth.email")}
+        accessibilityHint={t("auth.emailHintVendor")}
         autoCapitalize="none"
         keyboardType="email-address"
         onChangeText={setEmail}
-        placeholder="Email"
-        placeholderTextColor="#C5CDD6"
+        placeholder={t("auth.email")}
+        placeholderTextColor={colors.mutedAA}
         style={screenStyles.input}
         value={email}
       />
       <TextInput
-        accessibilityLabel="Parolă"
-        accessibilityHint="Parola contului de vendor"
+        accessibilityLabel={t("auth.password")}
+        accessibilityHint={t("auth.passwordHintVendor")}
         onChangeText={setPassword}
-        placeholder="Password"
-        placeholderTextColor="#C5CDD6"
+        placeholder={t("auth.password")}
+        placeholderTextColor={colors.mutedAA}
         secureTextEntry
         style={screenStyles.input}
         value={password}
       />
       <A11yButton
         disabled={busy}
-        label="Sign in"
-        hint="Autentifică vendorul"
+        label={t("auth.signIn")}
+        hint={t("auth.signInHintVendor")}
         onPress={() => void onSubmit()}
         style={screenStyles.button}
       >
         <Text style={screenStyles.buttonLabel}>
-          {busy ? "Signing in…" : "Sign in"}
+          {busy ? t("auth.signingIn") : t("auth.signIn")}
         </Text>
       </A11yButton>
-      <Link href="/(auth)/sign-up" style={{ marginTop: 16 }}>
+      <Link href="/(auth)/sign-up" style={{ marginTop: spacing.md }}>
         <Text accessibilityRole="link" style={screenStyles.muted}>
-          Create an account
+          {t("auth.createAccount")}
         </Text>
       </Link>
     </View>

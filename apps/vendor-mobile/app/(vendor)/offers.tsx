@@ -8,6 +8,7 @@ import {
   useQueuedAction,
   useSession,
 } from "@standmarket/supabase-client";
+import { colors, useTranslation } from "@standmarket/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { memo, useCallback, useState } from "react";
 import { FlatList, Text, TextInput, View } from "react-native";
@@ -47,53 +48,55 @@ const OfferRow = memo(function OfferRow({
   onEdit,
   onToggle,
   toggling,
+  labels,
 }: {
   item: VendorOffer;
   onEdit: (offer: VendorOffer) => void;
   onToggle: (offer: VendorOffer) => void;
   toggling: boolean;
+  labels: {
+    row: string;
+    image: string;
+    discount: string;
+    status: string;
+    edit: string;
+    editNamed: string;
+    editHint: string;
+    toggle: string;
+    toggleNamed: string;
+    toggleHint: string;
+  };
 }) {
   return (
-    <View
-      accessibilityLabel={`${item.product_name}, ${item.status}`}
-      style={screenStyles.card}
-    >
+    <View accessibilityLabel={labels.row} style={screenStyles.card}>
       <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <LazyImage label={`Imagine ${item.product_name}`} />
+        <LazyImage label={labels.image} />
         <View style={{ flex: 1 }}>
           <Text style={screenStyles.body}>{item.product_name}</Text>
           <Text style={screenStyles.muted}>
-            {item.discount_percent != null
-              ? `${item.discount_percent}%`
-              : "Fără discount"}
+            {labels.discount}
             {" · "}
-            {item.status}
+            {labels.status}
           </Text>
         </View>
       </View>
       <View style={screenStyles.row}>
         <A11yButton
-          label={`Editează ${item.product_name}`}
-          hint="Deschide formularul de editare"
+          label={labels.editNamed}
+          hint={labels.editHint}
           onPress={() => onEdit(item)}
           style={[screenStyles.chip, { flex: 1 }]}
         >
-          <Text style={screenStyles.buttonLabelOnSurface}>Editează</Text>
+          <Text style={screenStyles.buttonLabelOnSurface}>{labels.edit}</Text>
         </A11yButton>
         <A11yButton
           disabled={toggling}
-          label={
-            item.status === "active"
-              ? `Pauzează ${item.product_name}`
-              : `Activează ${item.product_name}`
-          }
-          hint="Schimbă statusul ofertei"
+          label={labels.toggleNamed}
+          hint={labels.toggleHint}
           onPress={() => onToggle(item)}
           style={[screenStyles.chip, { flex: 1 }]}
         >
-          <Text style={screenStyles.buttonLabelOnSurface}>
-            {item.status === "active" ? "Pauzează" : "Activează"}
-          </Text>
+          <Text style={screenStyles.buttonLabelOnSurface}>{labels.toggle}</Text>
         </A11yButton>
       </View>
     </View>
@@ -104,6 +107,7 @@ export default function OffersScreen() {
   const { session } = useSession();
   const queryClient = useQueryClient();
   const runQueued = useQueuedAction();
+  const { t } = useTranslation();
   const userId = session?.user.id ?? "";
   const [form, setForm] = useState<OfferDraft | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -192,12 +196,12 @@ export default function OffersScreen() {
       async () => {
         await save.mutateAsync();
       },
-      "Ofertă salvată",
+      t("offers.saved"),
     ).then(() => {
       setForm(null);
       setEditingId(null);
     });
-  }, [editingId, form, runQueued, save, stand.data?.category, standId, userId]);
+  }, [editingId, form, runQueued, save, stand.data?.category, standId, t, userId]);
 
   const onToggle = useCallback(
     (offer: VendorOffer) => {
@@ -207,10 +211,10 @@ export default function OffersScreen() {
         async () => {
           await toggle.mutateAsync(offer);
         },
-        offer.status === "active" ? "Ofertă pusă pe pauză" : "Ofertă activată",
+        offer.status === "active" ? t("offers.paused") : t("offers.activated"),
       );
     },
-    [runQueued, toggle],
+    [runQueued, t, toggle],
   );
 
   const onEdit = useCallback((offer: VendorOffer) => {
@@ -222,36 +226,36 @@ export default function OffersScreen() {
     return (
       <View style={screenStyles.root}>
         <Text accessibilityRole="header" style={screenStyles.title}>
-          {editingId ? "Editează ofertă" : "Adaugă ofertă"}
+          {editingId ? t("offers.edit") : t("offers.add")}
         </Text>
         <TextInput
-          accessibilityLabel="Titlu ofertă"
-          accessibilityHint="Numele produsului"
+          accessibilityLabel={t("offers.titleLabel")}
+          accessibilityHint={t("offers.titleHint")}
           onChangeText={(product_name) => setForm({ ...form, product_name })}
-          placeholder="Titlu"
-          placeholderTextColor="#C5CDD6"
+          placeholder={t("offers.title")}
+          placeholderTextColor={colors.mutedAA}
           style={screenStyles.input}
           value={form.product_name}
         />
         <TextInput
-          accessibilityLabel="Descriere ofertă"
-          accessibilityHint="Detalii opționale"
+          accessibilityLabel={t("offers.descriptionLabel")}
+          accessibilityHint={t("offers.descriptionHint")}
           multiline
           onChangeText={(description) => setForm({ ...form, description })}
-          placeholder="Descriere"
-          placeholderTextColor="#C5CDD6"
+          placeholder={t("offers.description")}
+          placeholderTextColor={colors.mutedAA}
           style={screenStyles.input}
           value={form.description}
         />
         <TextInput
-          accessibilityLabel="Discount procent"
-          accessibilityHint="Valoare între 0 și 100"
+          accessibilityLabel={t("offers.discountLabel")}
+          accessibilityHint={t("offers.discountHint")}
           keyboardType="decimal-pad"
           onChangeText={(discount_percent) =>
             setForm({ ...form, discount_percent })
           }
-          placeholder="Discount %"
-          placeholderTextColor="#C5CDD6"
+          placeholder={t("offers.discount")}
+          placeholderTextColor={colors.mutedAA}
           style={screenStyles.input}
           value={form.discount_percent}
         />
@@ -259,8 +263,10 @@ export default function OffersScreen() {
           {STATUSES.map((status) => (
             <A11yButton
               key={status}
-              label={`Status ${status}`}
-              hint="Selectează statusul ofertei"
+              label={t("offers.statusLabel", {
+                status: t(`offers.status.${status}`),
+              })}
+              hint={t("offers.statusHint")}
               onPress={() => setForm({ ...form, status })}
               style={[
                 screenStyles.chip,
@@ -274,32 +280,32 @@ export default function OffersScreen() {
                     : screenStyles.buttonLabelOnSurface
                 }
               >
-                {status}
+                {t(`offers.status.${status}`)}
               </Text>
             </A11yButton>
           ))}
         </View>
         <A11yButton
           disabled={save.isPending}
-          label="Salvează oferta"
-          hint="Trimite oferta sau o pune în coadă dacă ești offline"
+          label={t("offers.saveLabel")}
+          hint={t("offers.saveHint")}
           onPress={onSave}
           style={screenStyles.button}
         >
           <Text style={screenStyles.buttonLabel}>
-            {save.isPending ? "Se salvează…" : "Salvează"}
+            {save.isPending ? t("offers.saving") : t("offers.save")}
           </Text>
         </A11yButton>
         <A11yButton
-          label="Anulează"
-          hint="Închide formularul fără salvare"
+          label={t("offers.cancel")}
+          hint={t("offers.cancelHint")}
           onPress={() => {
             setForm(null);
             setEditingId(null);
           }}
           style={screenStyles.buttonSecondary}
         >
-          <Text style={screenStyles.buttonLabelOnSurface}>Anulează</Text>
+          <Text style={screenStyles.buttonLabelOnSurface}>{t("offers.cancel")}</Text>
         </A11yButton>
       </View>
     );
@@ -316,21 +322,21 @@ export default function OffersScreen() {
     >
       <View style={screenStyles.root}>
         <A11yButton
-          label="Adaugă ofertă"
-          hint="Deschide formularul pentru o ofertă nouă"
+          label={t("offers.add")}
+          hint={t("offers.addHint")}
           onPress={() => {
             setEditingId(null);
             setForm(emptyDraft);
           }}
           style={screenStyles.button}
         >
-          <Text style={screenStyles.buttonLabel}>Adaugă ofertă</Text>
+          <Text style={screenStyles.buttonLabel}>{t("offers.add")}</Text>
         </A11yButton>
         <FlatList
           data={offers.data ?? []}
           keyExtractor={(item) => item.id}
           ListEmptyComponent={
-            <Text style={screenStyles.muted}>Nicio ofertă pe acest stand</Text>
+            <Text style={screenStyles.muted}>{t("offers.empty")}</Text>
           }
           renderItem={({ item }) => (
             <OfferRow
@@ -338,6 +344,30 @@ export default function OffersScreen() {
               onEdit={onEdit}
               onToggle={onToggle}
               toggling={toggle.isPending}
+              labels={{
+                row: t("offers.rowLabel", {
+                  name: item.product_name,
+                  status: t(`offers.status.${item.status}`),
+                }),
+                image: t("offers.image", { name: item.product_name }),
+                discount:
+                  item.discount_percent != null
+                    ? `${item.discount_percent}%`
+                    : t("offers.noDiscount"),
+                status: t(`offers.status.${item.status}`),
+                edit: t("offers.editAction"),
+                editNamed: t("offers.editNamed", { name: item.product_name }),
+                editHint: t("offers.editHint"),
+                toggle:
+                  item.status === "active"
+                    ? t("offers.pause")
+                    : t("offers.activate"),
+                toggleNamed:
+                  item.status === "active"
+                    ? t("offers.pauseNamed", { name: item.product_name })
+                    : t("offers.activateNamed", { name: item.product_name }),
+                toggleHint: t("offers.toggleHint"),
+              }}
             />
           )}
         />

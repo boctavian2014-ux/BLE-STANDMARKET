@@ -1,18 +1,24 @@
 import { LazyImage, QueryGate } from "@standmarket/supabase-client";
+import { useTranslation } from "@standmarket/ui";
 import { useQuery } from "@tanstack/react-query";
 import { memo } from "react";
 import { FlatList, Text, View } from "react-native";
 import { fetchStands, type StandListItem } from "../../lib/queries";
 import { screenStyles } from "../../lib/styles";
 
-const StandRow = memo(function StandRow({ item }: { item: StandListItem }) {
+const StandRow = memo(function StandRow({
+  item,
+  imageLabel,
+  rowLabel,
+}: {
+  item: StandListItem;
+  imageLabel: string;
+  rowLabel: string;
+}) {
   return (
-    <View
-      accessibilityLabel={`${item.name}, ${item.hall} ${item.zone}`}
-      style={screenStyles.card}
-    >
+    <View accessibilityLabel={rowLabel} style={screenStyles.card}>
       <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <LazyImage label={`Imagine stand ${item.name}`} />
+        <LazyImage label={imageLabel} />
         <View style={{ flex: 1 }}>
           <Text style={screenStyles.body}>{item.name}</Text>
           <Text style={screenStyles.muted}>
@@ -25,6 +31,7 @@ const StandRow = memo(function StandRow({ item }: { item: StandListItem }) {
 });
 
 export default function StandsScreen() {
+  const { t } = useTranslation();
   const stands = useQuery({
     queryKey: ["stands", "active"],
     queryFn: fetchStands,
@@ -40,8 +47,20 @@ export default function StandsScreen() {
         <FlatList
           data={stands.data ?? []}
           keyExtractor={(item) => item.id}
-          ListEmptyComponent={<Text style={screenStyles.muted}>No stands</Text>}
-          renderItem={({ item }) => <StandRow item={item} />}
+          ListEmptyComponent={
+            <Text style={screenStyles.muted}>{t("stands.empty")}</Text>
+          }
+          renderItem={({ item }) => (
+            <StandRow
+              item={item}
+              imageLabel={t("stands.image", { name: item.name })}
+              rowLabel={t("stands.rowLabel", {
+                name: item.name,
+                hall: item.hall,
+                zone: item.zone,
+              })}
+            />
+          )}
         />
       </View>
     </QueryGate>

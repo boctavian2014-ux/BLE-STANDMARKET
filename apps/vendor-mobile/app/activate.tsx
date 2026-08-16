@@ -1,12 +1,12 @@
 import {
   A11yButton,
-  GENERIC_ACTIVATION_ERROR,
   getSupabaseClient,
   redeemVendorActivationCode,
   useSession,
   useToast,
   type RedeemVendorResult,
 } from "@standmarket/supabase-client";
+import { colors, mapVisibleError, useTranslation } from "@standmarket/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -17,6 +17,7 @@ export default function ActivateScreen() {
   const { session } = useSession();
   const queryClient = useQueryClient();
   const showToast = useToast();
+  const { t } = useTranslation();
   const router = useRouter();
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -30,9 +31,9 @@ export default function ActivateScreen() {
         code.trim(),
       );
       setResult(redeemed);
-      showToast("Stand activat", "success");
-    } catch {
-      showToast(GENERIC_ACTIVATION_ERROR, "error");
+      showToast(t("activate.successToast"), "success");
+    } catch (caught) {
+      showToast(mapVisibleError(caught, t), "error");
     } finally {
       setBusy(false);
     }
@@ -49,23 +50,23 @@ export default function ActivateScreen() {
     return (
       <View style={screenStyles.root}>
         <Text accessibilityRole="header" style={screenStyles.title}>
-          Stand activat
+          {t("activate.success")}
         </Text>
         <View style={screenStyles.card}>
-          <Text style={screenStyles.muted}>stand_id</Text>
+          <Text style={screenStyles.muted}>{t("activate.standId")}</Text>
           <Text style={screenStyles.body}>{result.stand_id}</Text>
         </View>
         <View style={screenStyles.card}>
-          <Text style={screenStyles.muted}>expo_id</Text>
+          <Text style={screenStyles.muted}>{t("activate.expoId")}</Text>
           <Text style={screenStyles.body}>{result.expo_id}</Text>
         </View>
         <A11yButton
-          label="Continuă"
-          hint="Intră în aplicația vendor"
+          label={t("activate.continue")}
+          hint={t("activate.continueHint")}
           onPress={() => void onContinue()}
           style={screenStyles.button}
         >
-          <Text style={screenStyles.buttonLabel}>Continuă</Text>
+          <Text style={screenStyles.buttonLabel}>{t("activate.continue")}</Text>
         </A11yButton>
       </View>
     );
@@ -74,31 +75,29 @@ export default function ActivateScreen() {
   return (
     <View style={screenStyles.root}>
       <Text accessibilityRole="header" style={screenStyles.title}>
-        Activează stand
+        {t("activate.title")}
       </Text>
-      <Text style={screenStyles.muted}>
-        Introdu codul de activare (16 caractere Crockford)
-      </Text>
+      <Text style={screenStyles.muted}>{t("activate.hint")}</Text>
       <TextInput
-        accessibilityLabel="Cod de activare"
-        accessibilityHint="16 caractere Crockford"
+        accessibilityLabel={t("activate.codeLabel")}
+        accessibilityHint={t("activate.codeHint")}
         autoCapitalize="characters"
         autoCorrect={false}
         onChangeText={setCode}
-        placeholder="XXXX-XXXX-XXXX-XXXX"
-        placeholderTextColor="#C5CDD6"
+        placeholder={t("activate.codePlaceholder")}
+        placeholderTextColor={colors.mutedAA}
         style={screenStyles.input}
         value={code}
       />
       <A11yButton
         disabled={busy}
-        label="Activează"
-        hint="Validează codul de activare"
+        label={t("activate.button")}
+        hint={t("activate.buttonHint")}
         onPress={() => void onSubmit()}
         style={screenStyles.button}
       >
         <Text style={screenStyles.buttonLabel}>
-          {busy ? "Se verifică…" : "Activează"}
+          {busy ? t("activate.checking") : t("activate.button")}
         </Text>
       </A11yButton>
     </View>

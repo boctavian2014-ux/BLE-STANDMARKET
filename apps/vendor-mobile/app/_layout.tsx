@@ -7,6 +7,7 @@ import {
   SessionProvider,
   useSession,
 } from "@standmarket/supabase-client";
+import { LanguageProvider, useTranslation } from "@standmarket/ui";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect, type ReactNode } from "react";
@@ -16,6 +17,7 @@ import { queryClient } from "../lib/query-client";
 
 function VendorGate({ children }: { children: ReactNode }) {
   const { session, isLoading } = useSession();
+  const { t } = useTranslation();
   const segments = useSegments();
   const router = useRouter();
   const membership = useQuery({
@@ -57,7 +59,7 @@ function VendorGate({ children }: { children: ReactNode }) {
   ]);
 
   if (isLoading || (session && membership.isLoading)) {
-    return <QuerySkeleton label="Se încarcă sesiunea vendor" />;
+    return <QuerySkeleton label={t("query.vendorSession")} />;
   }
 
   return children;
@@ -65,20 +67,22 @@ function VendorGate({ children }: { children: ReactNode }) {
 
 export default function RootLayout() {
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <SessionProvider>
-          <HardeningProvider
-            ping={pingSupabase}
-            store={offlineStore}
-            handlers={vendorOfflineHandlers}
-          >
-            <VendorGate>
-              <Stack screenOptions={{ headerShown: false }} />
-            </VendorGate>
-          </HardeningProvider>
-        </SessionProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
+    <LanguageProvider store={offlineStore}>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <SessionProvider>
+            <HardeningProvider
+              ping={pingSupabase}
+              store={offlineStore}
+              handlers={vendorOfflineHandlers}
+            >
+              <VendorGate>
+                <Stack screenOptions={{ headerShown: false }} />
+              </VendorGate>
+            </HardeningProvider>
+          </SessionProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    </LanguageProvider>
   );
 }

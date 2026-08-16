@@ -4,6 +4,7 @@ import {
   getSupabaseClient,
   useToast,
 } from "@standmarket/supabase-client";
+import { colors, mapVisibleError, spacing, useTranslation } from "@standmarket/ui";
 import { Link } from "expo-router";
 import { useState } from "react";
 import { Text, TextInput, View } from "react-native";
@@ -11,6 +12,7 @@ import { screenStyles } from "../../lib/styles";
 
 export default function SignUpScreen() {
   const showToast = useToast();
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -22,12 +24,9 @@ export default function SignUpScreen() {
         email.trim(),
         password,
       );
-      showToast("Cont creat", "success");
+      showToast(t("auth.accountCreated"), "success");
     } catch (caught) {
-      showToast(
-        caught instanceof Error ? caught.message : "Sign up failed",
-        "error",
-      );
+      showToast(mapVisibleError(caught, t), "error");
     } finally {
       setBusy(false);
     }
@@ -36,44 +35,44 @@ export default function SignUpScreen() {
   return (
     <View style={screenStyles.root}>
       <Text accessibilityRole="header" style={screenStyles.title}>
-        StandMarket
+        {t("auth.appName")}
       </Text>
-      <Text style={screenStyles.muted}>Create a visitor account</Text>
+      <Text style={screenStyles.muted}>{t("auth.visitorSignUpSubtitle")}</Text>
       <TextInput
-        accessibilityLabel="Email"
-        accessibilityHint="Adresa de email pentru noul cont"
+        accessibilityLabel={t("auth.email")}
+        accessibilityHint={t("auth.emailHintNew")}
         autoCapitalize="none"
         keyboardType="email-address"
         onChangeText={setEmail}
-        placeholder="Email"
-        placeholderTextColor="#C5CDD6"
+        placeholder={t("auth.email")}
+        placeholderTextColor={colors.mutedAA}
         style={screenStyles.input}
         value={email}
       />
       <TextInput
-        accessibilityLabel="Parolă"
-        accessibilityHint="Alege o parolă"
+        accessibilityLabel={t("auth.password")}
+        accessibilityHint={t("auth.passwordHintChoose")}
         onChangeText={setPassword}
-        placeholder="Password"
-        placeholderTextColor="#C5CDD6"
+        placeholder={t("auth.password")}
+        placeholderTextColor={colors.mutedAA}
         secureTextEntry
         style={screenStyles.input}
         value={password}
       />
       <A11yButton
         disabled={busy}
-        label="Sign up"
-        hint="Creează contul de vizitator"
+        label={t("auth.signUp")}
+        hint={t("auth.signUpHintVisitor")}
         onPress={() => void onSubmit()}
         style={screenStyles.button}
       >
         <Text style={screenStyles.buttonLabel}>
-          {busy ? "Creating…" : "Sign up"}
+          {busy ? t("auth.creating") : t("auth.signUp")}
         </Text>
       </A11yButton>
-      <Link href="/(auth)/sign-in" style={{ marginTop: 16 }}>
+      <Link href="/(auth)/sign-in" style={{ marginTop: spacing.md }}>
         <Text accessibilityRole="link" style={screenStyles.muted}>
-          Already have an account
+          {t("auth.alreadyHaveAccount")}
         </Text>
       </Link>
     </View>

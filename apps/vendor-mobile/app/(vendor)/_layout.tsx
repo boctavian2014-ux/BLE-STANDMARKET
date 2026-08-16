@@ -1,7 +1,8 @@
-import { colors } from "@standmarket/ui";
+import { colors, useTranslation } from "@standmarket/ui";
 import { Tabs } from "expo-router";
 
 export default function VendorTabsLayout() {
+  const { t } = useTranslation();
   return (
     <Tabs
       screenOptions={{
@@ -9,24 +10,33 @@ export default function VendorTabsLayout() {
         headerTintColor: colors.text,
         tabBarStyle: { backgroundColor: colors.surface },
         tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.muted,
+        tabBarInactiveTintColor: colors.mutedAA,
       }}
     >
       <Tabs.Screen
         name="offers"
-        options={{ title: "Oferte", tabBarAccessibilityLabel: "Oferte" }}
+        options={{
+          title: t("tabs.offers"),
+          tabBarAccessibilityLabel: t("tabs.offers"),
+        }}
       />
       <Tabs.Screen
         name="scan"
-        options={{ title: "Validare", tabBarAccessibilityLabel: "Validare" }}
+        options={{
+          title: t("tabs.validation"),
+          tabBarAccessibilityLabel: t("tabs.validation"),
+        }}
       />
       <Tabs.Screen
         name="stand"
-        options={{ title: "Stand", tabBarAccessibilityLabel: "Stand" }}
+        options={{ title: t("tabs.stand"), tabBarAccessibilityLabel: t("tabs.stand") }}
       />
       <Tabs.Screen
         name="profile"
-        options={{ title: "Profil", tabBarAccessibilityLabel: "Profil" }}
+        options={{
+          title: t("tabs.profile"),
+          tabBarAccessibilityLabel: t("tabs.profile"),
+        }}
       />
     </Tabs>
   );

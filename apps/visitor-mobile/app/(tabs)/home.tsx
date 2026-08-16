@@ -5,6 +5,7 @@ import {
   useSession,
   useToast,
 } from "@standmarket/supabase-client";
+import { useTranslation } from "@standmarket/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { memo, useEffect, useRef } from "react";
 import { FlatList, Text, View } from "react-native";
@@ -15,16 +16,23 @@ import {
 } from "../../lib/queries";
 import { screenStyles } from "../../lib/styles";
 
-const OfferRow = memo(function OfferRow({ item }: { item: OfferListItem }) {
+const OfferRow = memo(function OfferRow({
+  item,
+  offerLabel,
+  imageLabel,
+  rowLabel,
+}: {
+  item: OfferListItem;
+  offerLabel: string;
+  imageLabel: string;
+  rowLabel: string;
+}) {
   const discount =
-    item.discount_percent != null ? `${item.discount_percent}%` : "Offer";
+    item.discount_percent != null ? `${item.discount_percent}%` : offerLabel;
   return (
-    <View
-      accessibilityLabel={`${item.product_name}, ${discount}${item.stand_name ? `, ${item.stand_name}` : ""}`}
-      style={screenStyles.card}
-    >
+    <View accessibilityLabel={rowLabel} style={screenStyles.card}>
       <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <LazyImage label={`Imagine ${item.product_name}`} />
+        <LazyImage label={imageLabel} />
         <View style={{ flex: 1 }}>
           <Text style={screenStyles.body}>{item.product_name}</Text>
           <Text style={screenStyles.muted}>
@@ -41,6 +49,7 @@ export default function HomeScreen() {
   const { session } = useSession();
   const queryClient = useQueryClient();
   const showToast = useToast();
+  const { t } = useTranslation();
   const userId = session?.user.id ?? "";
   const seenViews = useRef(new Set<string>());
 
@@ -68,7 +77,7 @@ export default function HomeScreen() {
       filter: userId ? `user_id=eq.${userId}` : undefined,
     },
     () => {
-      showToast("Notificare nouă", "success");
+      showToast(t("home.notification"), "success");
     },
   );
 
@@ -97,9 +106,25 @@ export default function HomeScreen() {
           data={offers.data ?? []}
           keyExtractor={(item) => item.id}
           ListEmptyComponent={
-            <Text style={screenStyles.muted}>No active offers</Text>
+            <Text style={screenStyles.muted}>{t("home.empty")}</Text>
           }
-          renderItem={({ item }) => <OfferRow item={item} />}
+          renderItem={({ item }) => {
+            const meta =
+              item.discount_percent != null
+                ? `${item.discount_percent}%`
+                : t("home.offer");
+            return (
+              <OfferRow
+                item={item}
+                offerLabel={t("home.offer")}
+                imageLabel={t("home.image", { name: item.product_name })}
+                rowLabel={t("home.rowLabel", {
+                  name: item.product_name,
+                  meta: item.stand_name ? `${meta}, ${item.stand_name}` : meta,
+                })}
+              />
+            );
+          }}
         />
       </View>
     </QueryGate>
