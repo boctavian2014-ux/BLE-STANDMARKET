@@ -1,5 +1,6 @@
 import {
   A11yButton,
+  EmptyState,
   fetchActiveMembership,
   getSupabaseClient,
   LazyImage,
@@ -65,10 +66,15 @@ const OfferRow = memo(function OfferRow({
     toggle: string;
     toggleNamed: string;
     toggleHint: string;
+    saving: string;
   };
 }) {
   return (
-    <View accessibilityLabel={labels.row} style={screenStyles.card}>
+    <View
+      accessibilityRole="button"
+      accessibilityLabel={labels.row}
+      style={screenStyles.card}
+    >
       <View style={{ flexDirection: "row", alignItems: "center" }}>
         <LazyImage label={labels.image} />
         <View style={{ flex: 1 }}>
@@ -96,7 +102,9 @@ const OfferRow = memo(function OfferRow({
           onPress={() => onToggle(item)}
           style={[screenStyles.chip, { flex: 1 }]}
         >
-          <Text style={screenStyles.buttonLabelOnSurface}>{labels.toggle}</Text>
+          <Text style={screenStyles.buttonLabelOnSurface}>
+            {toggling ? labels.saving : labels.toggle}
+          </Text>
         </A11yButton>
       </View>
     </View>
@@ -336,7 +344,11 @@ export default function OffersScreen() {
           data={offers.data ?? []}
           keyExtractor={(item) => item.id}
           ListEmptyComponent={
-            <Text style={screenStyles.muted}>{t("offers.empty")}</Text>
+            <EmptyState
+              icon="🏷️"
+              title={t("empty.offersTitle")}
+              message={t("empty.offersMessage")}
+            />
           }
           renderItem={({ item }) => (
             <OfferRow
@@ -367,6 +379,7 @@ export default function OffersScreen() {
                     ? t("offers.pauseNamed", { name: item.product_name })
                     : t("offers.activateNamed", { name: item.product_name }),
                 toggleHint: t("offers.toggleHint"),
+                saving: t("offers.saving"),
               }}
             />
           )}

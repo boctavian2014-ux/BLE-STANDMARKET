@@ -7,7 +7,7 @@ import {
 import { colors, useTranslation } from "@standmarket/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
-import { Text, View } from "react-native";
+import { ActivityIndicator, Text, View } from "react-native";
 import { INTEREST_CATEGORIES } from "../../lib/categories";
 import {
   addInterest,
@@ -97,21 +97,28 @@ export default function InterestsScreen() {
         {INTEREST_CATEGORIES.map((category) => {
           const isOn = selected.data?.includes(category) ?? false;
           const label = t(CATEGORY_KEYS[category]);
+          const pending = toggle.isPending && toggle.variables === category;
           return (
             <A11yButton
               key={category}
+              disabled={pending}
               label={label}
               hint={isOn ? t("interests.removeHint") : t("interests.addHint")}
               onPress={() => onToggle(category, isOn)}
               style={[
                 screenStyles.card,
                 isOn ? { borderWidth: 1, borderColor: colors.accent } : null,
+                pending ? { opacity: 0.5 } : null,
               ]}
             >
               <Text style={screenStyles.body}>{label}</Text>
-              <Text style={screenStyles.muted}>
-                {isOn ? t("interests.selected") : t("interests.tapToSelect")}
-              </Text>
+              {pending ? (
+                <ActivityIndicator color={colors.accent} />
+              ) : (
+                <Text style={screenStyles.muted}>
+                  {isOn ? t("interests.selected") : t("interests.tapToSelect")}
+                </Text>
+              )}
             </A11yButton>
           );
         })}

@@ -1,4 +1,4 @@
-import { LazyImage, QueryGate } from "@standmarket/supabase-client";
+import { EmptyState, LazyImage, QueryGate } from "@standmarket/supabase-client";
 import { useTranslation } from "@standmarket/ui";
 import { useQuery } from "@tanstack/react-query";
 import { memo } from "react";
@@ -16,9 +16,13 @@ const StandRow = memo(function StandRow({
   rowLabel: string;
 }) {
   return (
-    <View accessibilityLabel={rowLabel} style={screenStyles.card}>
+    <View
+      accessibilityRole="button"
+      accessibilityLabel={rowLabel}
+      style={screenStyles.card}
+    >
       <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <LazyImage label={imageLabel} />
+        <LazyImage label={imageLabel} initial={item.name.slice(0, 1)} />
         <View style={{ flex: 1 }}>
           <Text style={screenStyles.body}>{item.name}</Text>
           <Text style={screenStyles.muted}>
@@ -48,7 +52,11 @@ export default function StandsScreen() {
           data={stands.data ?? []}
           keyExtractor={(item) => item.id}
           ListEmptyComponent={
-            <Text style={screenStyles.muted}>{t("stands.empty")}</Text>
+            <EmptyState
+              icon="🏪"
+              title={t("empty.standsTitle")}
+              message={t("empty.standsMessage")}
+            />
           }
           renderItem={({ item }) => (
             <StandRow
