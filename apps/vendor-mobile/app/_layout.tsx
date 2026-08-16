@@ -67,7 +67,7 @@ function VendorGate({ children }: { children: ReactNode }) {
 
 export default function RootLayout() {
   return (
-    <LanguageProvider>
+    <LanguageProvider store={offlineStore}>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <SessionProvider>
